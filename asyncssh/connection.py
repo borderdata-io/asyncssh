@@ -358,8 +358,7 @@ class SSHConnection(SSHPacketHandler):
             else:
                 raise
 
-    @asyncio.coroutine
-    def __aenter__(self):
+    async def __aenter__(self):
         """Allow SSHConnection to be used as an async context manager"""
 
         return self
