@@ -363,8 +363,7 @@ class SSHConnection(SSHPacketHandler):
 
         return self
 
-    @asyncio.coroutine
-    def __aexit__(self, *exc_info):
+    async def __aexit__(self, *exc_info):
         """Wait for connection close when used as an async context manager"""
 
         self.__exit__()
@@ -2076,8 +2075,7 @@ class SSHConnection(SSHPacketHandler):
 
         """
 
-        @asyncio.coroutine
-        def tunnel_connection(session_factory, orig_host, orig_port):
+            async def tunnel_connection(session_factory, orig_host, orig_port):
             """Forward a local connection over SSH"""
 
             return (yield from self.create_connection(session_factory,
@@ -2128,8 +2126,7 @@ class SSHConnection(SSHPacketHandler):
 
         """
 
-        @asyncio.coroutine
-        def tunnel_connection(session_factory):
+            async def tunnel_connection(session_factory):
             """Forward a local connection over SSH"""
 
             return (yield from self.create_unix_connection(session_factory,
@@ -3449,8 +3446,7 @@ class SSHClientConnection(SSHConnection):
 
         """
 
-        @asyncio.coroutine
-        def tunnel_socks(session_factory, dest_host, dest_port,
+            async def tunnel_socks(session_factory, dest_host, dest_port,
                          orig_host, orig_port):
             """Forward a local SOCKS connection over SSH"""
 

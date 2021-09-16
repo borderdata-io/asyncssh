@@ -49,8 +49,7 @@ class SSHReader:
 
             return self
 
-        @asyncio.coroutine
-        def __anext__(self):
+        async def __anext__(self):
             """Return one line at a time when used as an async iterator"""
 
             line = yield from self.readline()
@@ -84,8 +83,7 @@ class SSHReader:
 
         return self._chan.get_extra_info(name, default)
 
-    @asyncio.coroutine
-    def read(self, n=-1):
+    async def read(self, n=-1):
         """Read data from the stream
 
            This method is a coroutine which reads up to `n` bytes
@@ -107,8 +105,7 @@ class SSHReader:
 
         return self._session.read(n, self._datatype, exact=False)
 
-    @asyncio.coroutine
-    def readline(self):
+    async def readline(self):
         """Read one line from the stream
 
            This method is a coroutine which reads one line, ending in
@@ -132,8 +129,7 @@ class SSHReader:
         except asyncio.IncompleteReadError as exc:
             return exc.partial
 
-    @asyncio.coroutine
-    def readuntil(self, separator):
+    async def readuntil(self, separator):
         """Read data from the stream until `separator` is seen
 
            This method is a coroutine which reads from the stream until
@@ -152,8 +148,7 @@ class SSHReader:
 
         return self._session.readuntil(separator, self._datatype)
 
-    @asyncio.coroutine
-    def readexactly(self, n):
+    async def readexactly(self, n):
         """Read an exact amount of data from the stream
 
            This method is a coroutine which reads exactly n bytes or
@@ -234,8 +229,7 @@ class SSHWriter:
 
         return self._chan.close()
 
-    @asyncio.coroutine
-    def drain(self):
+    async def drain(self):
         """Wait until the write buffer on the channel is flushed
 
            This method is a coroutine which blocks the caller if the
@@ -309,8 +303,7 @@ class SSHStreamSession:
         self._write_paused = False
         self._drain_waiters = {None: set()}
 
-    @asyncio.coroutine
-    def _block_read(self, datatype):
+    async def _block_read(self, datatype):
         """Wait for more data to arrive on the stream"""
 
         try:
@@ -436,8 +429,7 @@ class SSHStreamSession:
         for datatype in self._drain_waiters:
             self._unblock_drain(datatype)
 
-    @asyncio.coroutine
-    def read(self, n, datatype, exact):
+    async def read(self, n, datatype, exact):
         """Read data from the channel"""
 
         recv_buf = self._recv_buf[datatype]
@@ -486,8 +478,7 @@ class SSHStreamSession:
 
         return buf
 
-    @asyncio.coroutine
-    def readuntil(self, separator, datatype):
+    async def readuntil(self, separator, datatype):
         """Read data from the channel until a separator is seen"""
 
         if separator is _NEWLINE:
@@ -543,8 +534,7 @@ class SSHStreamSession:
 
                 yield from self._block_read(datatype)
 
-    @asyncio.coroutine
-    def drain(self, datatype):
+    async def drain(self, datatype):
         """Wait for data written to the channel to drain"""
 
         while self._should_block_drain(datatype):

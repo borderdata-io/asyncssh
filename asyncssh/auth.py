@@ -101,8 +101,7 @@ class _ClientAuth(_Auth):
 
         super().__init__(conn, self._start())
 
-    @asyncio.coroutine
-    def _start(self):
+    async def _start(self):
         """Abstract method for starting client authentication"""
 
         # Provided by subclass
@@ -114,8 +113,7 @@ class _ClientAuth(_Auth):
     def auth_failed(self):
         """Callback when auth fails"""
 
-    @asyncio.coroutine
-    def send_request(self, *args, key=None):
+    async def send_request(self, *args, key=None):
         """Send a user authentication request"""
 
         yield from self._conn.send_userauth_request(self._method,
@@ -125,8 +123,7 @@ class _ClientAuth(_Auth):
 class _ClientNullAuth(_ClientAuth):
     """Client side implementation of null auth"""
 
-    @asyncio.coroutine
-    def _start(self):
+    async def _start(self):
         """Start client null authentication"""
 
         yield from self.send_request()
@@ -135,8 +132,7 @@ class _ClientNullAuth(_ClientAuth):
 class _ClientGSSKexAuth(_ClientAuth):
     """Client side implementation of GSS key exchange auth"""
 
-    @asyncio.coroutine
-    def _start(self):
+    async def _start(self):
         """Start client GSS key exchange authentication"""
 
         if self._conn.gss_kex_auth_requested():

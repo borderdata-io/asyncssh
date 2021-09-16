@@ -56,8 +56,7 @@ class SSHKeySignKeyPair(SSHKeyPair):
 
         pass
 
-    @asyncio.coroutine
-    def sign(self, data):
+    async def sign(self, data):
         """Use ssh-keysign to sign a block of data with this key"""
 
         proc = yield from asyncio.create_subprocess_exec(

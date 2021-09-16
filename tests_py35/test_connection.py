@@ -30,14 +30,14 @@ class _TestConnection(ServerTestCase):
     # pylint: disable=not-async-context-manager
 
     @asynctest35
-    async def test_connect(self):
+async def test_connect(self):
         """Test connecting in Python 3.5 with async context manager"""
 
         async with self.connect():
             pass
 
     @asynctest35
-    async def test_connect_await(self):
+async def test_connect_await(self):
         """Test connecting with await and async context manager"""
 
         conn = await self.connect()

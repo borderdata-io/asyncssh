@@ -41,8 +41,7 @@ try:
     else:
         from .agent_unix import open_agent
 except ImportError as exc: # pragma: no cover
-    @asyncio.coroutine
-    def open_agent(loop, agent_path, reason=str(exc)):
+    async def open_agent(loop, agent_path, reason=str(exc)):
         """Dummy function if we're unable to import agent support"""
 
         # pylint: disable=unused-argument
@@ -148,15 +147,13 @@ class SSHAgentKeyPair(SSHKeyPair):
         elif sig_algorithm == b'rsa-sha2-512':
             self._flags |= SSH_AGENT_RSA_SHA2_512
 
-    @asyncio.coroutine
-    def sign(self, data):
+    async def sign(self, data):
         """Sign a block of data with this private key"""
 
         return (yield from self._agent.sign(self.public_data,
                                             data, self._flags))
 
-    @asyncio.coroutine
-    def remove(self):
+    async def remove(self):
         """Remove this key pair from the agent"""
 
         yield from self._agent.remove_keys([self])
@@ -194,8 +191,7 @@ class SSHAgentClient:
 
         return result
 
-    @asyncio.coroutine
-    def connect(self):
+    async def connect(self):
         """Connect to the SSH agent"""
 
         if isinstance(self._agent_path, asyncssh.SSHServerConnection):
@@ -205,8 +201,7 @@ class SSHAgentClient:
             self._reader, self._writer = \
                 yield from open_agent(self._loop, self._agent_path)
 
-    @asyncio.coroutine
-    def _make_request(self, msgtype, *args):
+    async def _make_request(self, msgtype, *args):
         """Send an SSH agent request"""
 
         with (yield from self._lock):
@@ -230,8 +225,7 @@ class SSHAgentClient:
                 self._cleanup()
                 raise ValueError(str(exc)) from None
 
-    @asyncio.coroutine
-    def get_keys(self):
+    async def get_keys(self):
         """Request the available client keys
 
            This method is a coroutine which returns a list of client keys
@@ -263,8 +257,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def sign(self, key_blob, data, flags=0):
+    async def sign(self, key_blob, data, flags=0):
         """Sign a block of data with the requested key"""
 
         resptype, resp = \
@@ -281,8 +274,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def add_keys(self, keylist=(), passphrase=None,
+    async def add_keys(self, keylist=(), passphrase=None,
                  lifetime=None, confirm=False):
         """Add keys to the agent
 
@@ -340,8 +332,7 @@ class SSHAgentClient:
             else:
                 raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def add_smartcard_keys(self, provider, pin=None,
+    async def add_smartcard_keys(self, provider, pin=None,
                            lifetime=None, confirm=False):
         """Store keys associated with a smart card in the agent
 
@@ -380,8 +371,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def remove_keys(self, keylist):
+    async def remove_keys(self, keylist):
         """Remove a key stored in the agent
 
            :param keylist:
@@ -404,8 +394,7 @@ class SSHAgentClient:
             else:
                 raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def remove_smartcard_keys(self, provider, pin=None):
+    async def remove_smartcard_keys(self, provider, pin=None):
         """Remove keys associated with a smart card stored in the agent
 
            :param provider:
@@ -430,8 +419,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def remove_all(self):
+    async def remove_all(self):
         """Remove all keys stored in the agent
 
            :raises: :exc:`ValueError` if the keys can't be removed
@@ -448,8 +436,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def lock(self, passphrase):
+    async def lock(self, passphrase):
         """Lock the agent using the specified passphrase
 
            .. note:: The lock and unlock actions don't appear to be
@@ -473,8 +460,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def unlock(self, passphrase):
+    async def unlock(self, passphrase):
         """Unlock the agent using the specified passphrase
 
            .. note:: The lock and unlock actions don't appear to be
@@ -498,8 +484,7 @@ class SSHAgentClient:
         else:
             raise ValueError('Unknown SSH agent response: %d' % resptype)
 
-    @asyncio.coroutine
-    def query_extensions(self):
+    async def query_extensions(self):
         """Return a list of extensions supported by the agent
 
            :returns: A list of strings of supported extension names

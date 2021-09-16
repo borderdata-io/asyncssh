@@ -143,8 +143,7 @@ class _AsyncFileReader(_FileReader):
 
         self._conn = process.channel.get_connection()
 
-    @asyncio.coroutine
-    def _feed(self):
+    async def _feed(self):
         """Feed file data"""
 
         while not self._paused:
@@ -493,14 +492,12 @@ class SSHProcess:
 
         self.close()
 
-    @asyncio.coroutine
-    def __aenter__(self):
+    async def __aenter__(self):
         """Allow SSHProcess to be used as an async context manager"""
 
         return self
 
-    @asyncio.coroutine
-    def __aexit__(self, *exc_info):
+    async def __aexit__(self, *exc_info):
         """Wait for a full channel close when exiting the async context"""
 
         self.close()
@@ -576,8 +573,7 @@ class SSHProcess:
 
         return self._chan.get_extra_info(name, default)
 
-    @asyncio.coroutine
-    def _create_reader(self, source, bufsize, send_eof, datatype=None):
+    async def _create_reader(self, source, bufsize, send_eof, datatype=None):
         """Create a reader to forward data to the SSH channel"""
 
         def pipe_factory():
@@ -628,8 +624,7 @@ class SSHProcess:
         elif isinstance(reader, _ProcessReader):
             reader_process.feed_recv_buf(reader_datatype, writer)
 
-    @asyncio.coroutine
-    def _create_writer(self, target, bufsize, send_eof, datatype=None):
+    async def _create_writer(self, target, bufsize, send_eof, datatype=None):
         """Create a writer to forward data from the SSH channel"""
 
         def pipe_factory():
@@ -828,8 +823,7 @@ class SSHProcess:
 
         self._chan.close()
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for the process to finish shutting down"""
 
         yield from self._chan.wait_closed()
@@ -892,8 +886,7 @@ class SSHClientProcess(SSHProcess, SSHClientStreamSession):
 
         return self._stderr
 
-    @asyncio.coroutine
-    def redirect(self, stdin=None, stdout=None, stderr=None,
+    async def redirect(self, stdin=None, stdout=None, stderr=None,
                  bufsize=io.DEFAULT_BUFFER_SIZE, send_eof=True):
         """Perform I/O redirection for the process
 
@@ -959,8 +952,7 @@ class SSHClientProcess(SSHProcess, SSHClientStreamSession):
             yield from self._create_writer(stderr, bufsize, send_eof,
                                            EXTENDED_DATA_STDERR)
 
-    @asyncio.coroutine
-    def redirect_stdin(self, source, bufsize=io.DEFAULT_BUFFER_SIZE,
+    async def redirect_stdin(self, source, bufsize=io.DEFAULT_BUFFER_SIZE,
                        send_eof=True):
         """Redirect standard input of the process"""
 

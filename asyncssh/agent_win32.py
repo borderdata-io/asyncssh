@@ -95,8 +95,7 @@ class _PageantTransport:
         except ValueError as exc:
             raise OSError(errno.EIO, str(exc)) from None
 
-    @asyncio.coroutine
-    def readexactly(self, n):
+    async def readexactly(self, n):
         """Read response data from Pageant agent"""
 
         if self._writing:
@@ -134,8 +133,7 @@ class _W10OpenSSHTransport:
 
         self._agentfile.write(data)
 
-    @asyncio.coroutine
-    def readexactly(self, n):
+    async def readexactly(self, n):
         """Read response data from OpenSSH agent"""
 
         result = self._agentfile.read(n)

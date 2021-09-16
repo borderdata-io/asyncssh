@@ -39,8 +39,7 @@ from .util import make_certificate, x509_available
 class _FailValidateHostSSHServerConnection(asyncssh.SSHServerConnection):
     """Test error in validating host key signature"""
 
-    @asyncio.coroutine
-    def validate_host_based_auth(self, username, key_data, client_host,
+    async def validate_host_based_auth(self, username, key_data, client_host,
                                  client_username, msg, signature):
         """Validate host based authentication for the specified host and user"""
 
@@ -54,8 +53,7 @@ class _FailValidateHostSSHServerConnection(asyncssh.SSHServerConnection):
 class _AsyncGSSServer(asyncssh.SSHServer):
     """Server for testing async GSS authentication"""
 
-    @asyncio.coroutine
-    def validate_gss_principal(self, username, user_principal, host_principal):
+    async def validate_gss_principal(self, username, user_principal, host_principal):
         """Return whether password is valid for this user"""
 
         return super().validate_gss_principal(username, user_principal,
@@ -74,8 +72,7 @@ class _HostBasedServer(Server):
 class _AsyncHostBasedServer(Server):
     """Server for testing async host-based authentication"""
 
-    @asyncio.coroutine
-    def validate_host_based_user(self, username, client_host, client_username):
+    async def validate_host_based_user(self, username, client_host, client_username):
         """Return whether remote host and user is authorized for this user"""
 
         return super().validate_host_based_user(username, client_host,
@@ -85,8 +82,7 @@ class _AsyncHostBasedServer(Server):
 class _InvalidUsernameClientConnection(asyncssh.connection.SSHClientConnection):
     """Test sending a client username with invalid Unicode to the server"""
 
-    @asyncio.coroutine
-    def host_based_auth_requested(self):
+    async def host_based_auth_requested(self):
         """Return a host key pair, host, and user to authenticate with"""
 
         keypair, host, _ = yield from super().host_based_auth_requested()
@@ -101,8 +97,7 @@ class _PublicKeyClient(asyncssh.SSHClient):
         self._keylist = keylist
         self._delay = delay
 
-    @asyncio.coroutine
-    def public_key_auth_requested(self):
+    async def public_key_auth_requested(self):
         """Return a public key to authenticate with"""
 
         if self._delay:
@@ -114,8 +109,7 @@ class _PublicKeyClient(asyncssh.SSHClient):
 class _AsyncPublicKeyClient(_PublicKeyClient):
     """Test async client public key authentication"""
 
-    @asyncio.coroutine
-    def public_key_auth_requested(self):
+    async def public_key_auth_requested(self):
         """Return a public key to authenticate with"""
 
         return super().public_key_auth_requested()
@@ -164,8 +158,7 @@ class _PublicKeyServer(Server):
 class _AsyncPublicKeyServer(_PublicKeyServer):
     """Server for testing async public key authentication"""
 
-    @asyncio.coroutine
-    def begin_auth(self, username):
+    async def begin_auth(self, username):
         """Handle client authentication request"""
 
         return super().begin_auth(username)

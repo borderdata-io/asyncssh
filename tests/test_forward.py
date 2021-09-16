@@ -98,8 +98,7 @@ def _async_runtime_error(reader, writer):
 class _ClientConn(asyncssh.SSHClientConnection):
     """Patched SSH client connection for unit testing"""
 
-    @asyncio.coroutine
-    def make_global_request(self, request, *args):
+    async def make_global_request(self, request, *args):
         """Send a global request and wait for the response"""
 
         return self._make_global_request(request, *args)
@@ -113,8 +112,7 @@ class _EchoPortListener(asyncssh.SSHListener):
 
         conn.create_task(self._open_connection())
 
-    @asyncio.coroutine
-    def _open_connection(self):
+    async def _open_connection(self):
         """Open a forwarded connection that echoes data"""
 
         yield from asyncio.sleep(0.1)
@@ -126,8 +124,7 @@ class _EchoPortListener(asyncssh.SSHListener):
 
         pass
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for the listener to close"""
 
         pass # pragma: no cover
@@ -141,8 +138,7 @@ class _EchoPathListener(asyncssh.SSHListener):
 
         conn.create_task(self._open_connection())
 
-    @asyncio.coroutine
-    def _open_connection(self):
+    async def _open_connection(self):
         """Open a forwarded connection that echoes data"""
 
         yield from asyncio.sleep(0.1)
@@ -154,8 +150,7 @@ class _EchoPathListener(asyncssh.SSHListener):
 
         pass
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for the listener to close"""
 
         pass # pragma: no cover
@@ -215,8 +210,7 @@ class _UNIXConnectionServer(Server):
 class _CheckForwarding(ServerTestCase):
     """Utility functions for AsyncSSH forwarding unit tests"""
 
-    @asyncio.coroutine
-    def _check_echo_line(self, reader, writer, delay=False, encoded=False):
+    async def _check_echo_line(self, reader, writer, delay=False, encoded=False):
         """Check if an input line is properly echoed back"""
 
         if delay:
@@ -236,8 +230,7 @@ class _CheckForwarding(ServerTestCase):
 
         self.assertEqual(line, result)
 
-    @asyncio.coroutine
-    def _check_echo_block(self, reader, writer):
+    async def _check_echo_block(self, reader, writer):
         """Check if a block of data is properly echoed back"""
 
         data = 4 * [1025*1024*b'\0']
@@ -258,15 +251,13 @@ class _TestTCPForwarding(_CheckForwarding):
     """Unit tests for AsyncSSH TCP connection forwarding"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which supports TCP connection forwarding"""
 
         return (yield from cls.create_server(
             _TCPConnectionServer, authorized_client_keys='authorized_keys'))
 
-    @asyncio.coroutine
-    def _check_connection(self, conn, dest_host='', dest_port=7, **kwargs):
+    async def _check_connection(self, conn, dest_host='', dest_port=7, **kwargs):
         """Open a connection and test if a block of data is echoed back"""
 
         reader, writer = yield from conn.open_connection(dest_host, dest_port,

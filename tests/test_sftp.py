@@ -86,8 +86,7 @@ def sftp_test(func):
 class _ResetFileHandleServerHandler(SFTPServerHandler):
     """Reset file handle counter on each request to test handle-in-use check"""
 
-    @asyncio.coroutine
-    def recv_packet(self):
+    async def recv_packet(self):
         """Reset next handle counter to test handle-in-use check"""
 
         self._next_handle = 0
@@ -97,8 +96,7 @@ class _ResetFileHandleServerHandler(SFTPServerHandler):
 class _WriteCloseServerHandler(SFTPServerHandler):
     """Close the SFTP session in the middle of a write request"""
 
-    @asyncio.coroutine
-    def _process_packet(self, pkttype, pktid, packet):
+    async def _process_packet(self, pkttype, pktid, packet):
         """Close the session when a file close request is received"""
 
         if pkttype == FXP_WRITE:
@@ -110,8 +108,7 @@ class _WriteCloseServerHandler(SFTPServerHandler):
 class _NonblockingCloseServerHandler(SFTPServerHandler):
     """Close the SFTP session without responding to a nonblocking close"""
 
-    @asyncio.coroutine
-    def _process_packet(self, pkttype, pktid, packet):
+    async def _process_packet(self, pkttype, pktid, packet):
         """Close the session when a file close request is received"""
 
         if pkttype == FXP_CLOSE:
@@ -125,8 +122,7 @@ class _ReorderReadServerHandler(SFTPServerHandler):
 
     _request = 'delay'
 
-    @asyncio.coroutine
-    def _process_packet(self, pkttype, pktid, packet):
+    async def _process_packet(self, pkttype, pktid, packet):
         """Close the session when a file close request is received"""
 
         if pkttype == FXP_READ:
@@ -161,8 +157,7 @@ class _ChrootSFTPServer(SFTPServer):
 class _IOErrorSFTPServer(SFTPServer):
     """Return an I/O error during file writing"""
 
-    @asyncio.coroutine
-    def read(self, file_obj, offset, size):
+    async def read(self, file_obj, offset, size):
         """Return an error for reads past 64 KB in a file"""
 
         if offset >= 65536:
@@ -170,8 +165,7 @@ class _IOErrorSFTPServer(SFTPServer):
         else:
             return super().read(file_obj, offset, size)
 
-    @asyncio.coroutine
-    def write(self, file_obj, offset, data):
+    async def write(self, file_obj, offset, data):
         """Return an error for writes past 64 KB in a file"""
 
         if offset >= 65536:
@@ -183,8 +177,7 @@ class _IOErrorSFTPServer(SFTPServer):
 class _NotImplSFTPServer(SFTPServer):
     """Return an error that a request is not implemented"""
 
-    @asyncio.coroutine
-    def symlink(self, oldpath, newpath):
+    async def symlink(self, oldpath, newpath):
         """Return that symlinks aren't implemented"""
 
         raise NotImplementedError
@@ -215,8 +208,7 @@ class _LongnameSFTPServer(SFTPServer):
 class _LargeDirSFTPServer(SFTPServer):
     """Return a really large listdir result"""
 
-    @asyncio.coroutine
-    def listdir(self, path):
+    async def listdir(self, path):
         """Return a really large listdir result"""
 
         # pylint: disable=unused-argument
@@ -282,8 +274,7 @@ class _SymlinkSFTPServer(SFTPServer):
 class _SFTPAttrsSFTPServer(SFTPServer):
     """Implement stat which returns SFTPAttrs and raises SFTPError"""
 
-    @asyncio.coroutine
-    def stat(self, path):
+    async def stat(self, path):
         """Get attributes of a file or directory, following symlinks"""
 
         try:
@@ -298,98 +289,82 @@ class _SFTPAttrsSFTPServer(SFTPServer):
 class _AsyncSFTPServer(SFTPServer):
     """Implement all SFTP callbacks as coroutines"""
 
-    @asyncio.coroutine
-    def format_longname(self, name):
+    async def format_longname(self, name):
         """Format the long name associated with an SFTP name"""
 
         return super().format_longname(name)
 
-    @asyncio.coroutine
-    def open(self, path, pflags, attrs):
+    async def open(self, path, pflags, attrs):
         """Open a file to serve to a remote client"""
 
         return super().open(path, pflags, attrs)
 
-    @asyncio.coroutine
-    def close(self, file_obj):
+    async def close(self, file_obj):
         """Close an open file or directory"""
 
         super().close(file_obj)
 
-    @asyncio.coroutine
-    def read(self, file_obj, offset, size):
+    async def read(self, file_obj, offset, size):
         """Read data from an open file"""
 
         return super().read(file_obj, offset, size)
 
-    @asyncio.coroutine
-    def write(self, file_obj, offset, data):
+    async def write(self, file_obj, offset, data):
         """Write data to an open file"""
 
         return super().write(file_obj, offset, data)
 
-    @asyncio.coroutine
-    def lstat(self, path):
+    async def lstat(self, path):
         """Get attributes of a file, directory, or symlink"""
 
         return super().lstat(path)
 
-    @asyncio.coroutine
-    def fstat(self, file_obj):
+    async def fstat(self, file_obj):
         """Get attributes of an open file"""
 
         return super().fstat(file_obj)
 
-    @asyncio.coroutine
-    def setstat(self, path, attrs):
+    async def setstat(self, path, attrs):
         """Set attributes of a file or directory"""
 
         super().setstat(path, attrs)
 
-    @asyncio.coroutine
-    def fsetstat(self, file_obj, attrs):
+    async def fsetstat(self, file_obj, attrs):
         """Set attributes of an open file"""
 
         super().fsetstat(file_obj, attrs)
 
-    @asyncio.coroutine
-    def listdir(self, path):
+    async def listdir(self, path):
         """List the contents of a directory"""
 
         return super().listdir(path)
 
-    @asyncio.coroutine
-    def remove(self, path):
+    async def remove(self, path):
         """Remove a file or symbolic link"""
 
         super().remove(path)
 
-    @asyncio.coroutine
-    def mkdir(self, path, attrs):
+    async def mkdir(self, path, attrs):
         """Create a directory with the specified attributes"""
 
         super().mkdir(path, attrs)
 
-    @asyncio.coroutine
-    def rmdir(self, path):
+    async def rmdir(self, path):
         """Remove a directory"""
 
         super().rmdir(path)
 
-    @asyncio.coroutine
-    def realpath(self, path):
+    async def realpath(self, path):
         """Return the canonical version of a path"""
 
         return super().realpath(path)
 
-    @asyncio.coroutine
-    def stat(self, path):
+    async def stat(self, path):
         """Get attributes of a file or directory, following symlinks"""
 
         return super().stat(path)
 
-    @asyncio.coroutine
-    def rename(self, oldpath, newpath):
+    async def rename(self, oldpath, newpath):
         """Rename a file, directory, or link"""
 
         super().rename(oldpath, newpath)
@@ -1090,8 +1065,7 @@ class _TestSFTP(_CheckSFTP):
     def test_listdir_error(self, sftp):
         """Test error while listing contents of a directory"""
 
-        @asyncio.coroutine
-        def _readdir_error(self, handle):
+            async def _readdir_error(self, handle):
             """Return an error on an SFTP readdir request"""
 
             # pylint: disable=unused-argument
@@ -1149,8 +1123,7 @@ class _TestSFTP(_CheckSFTP):
     def test_readlink_decode_error(self, sftp):
         """Test unicode decode error while reading a symlink"""
 
-        @asyncio.coroutine
-        def _readlink_error(self, path):
+            async def _readlink_error(self, path):
             """Return invalid unicode on an SFTP readlink request"""
 
             # pylint: disable=unused-argument
@@ -1293,8 +1266,7 @@ class _TestSFTP(_CheckSFTP):
     def test_open_read_out_of_order(self):
         """Test parallel read with out-of-order responses"""
 
-        @asyncio.coroutine
-        def _test_read_out_of_order(self, sftp):
+            async def _test_read_out_of_order(self, sftp):
             """Test parallel read with out-of-order responses"""
 
             f = None
@@ -1718,8 +1690,7 @@ class _TestSFTP(_CheckSFTP):
     def test_invalid_handle(self, sftp):
         """Test sending requests associated with an invalid file handle"""
 
-        @asyncio.coroutine
-        def _return_invalid_handle(self, path, pflags, attrs):
+            async def _return_invalid_handle(self, path, pflags, attrs):
             """Return an invalid file handle"""
 
             # pylint: disable=unused-argument
@@ -1821,8 +1792,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unexpected_client_close(self):
         """Test an unexpected connection close from client"""
 
-        @asyncio.coroutine
-        def _unexpected_client_close(self):
+            async def _unexpected_client_close(self):
             """Close the SSH connection before sending an init request"""
 
             self._writer.channel.get_connection().abort()
@@ -1834,8 +1804,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unexpected_server_close(self):
         """Test an unexpected connection close from server"""
 
-        @asyncio.coroutine
-        def _unexpected_server_close(self):
+            async def _unexpected_server_close(self):
             """Close the SSH connection before sending a version response"""
 
             packet = yield from SFTPHandler.recv_packet(self)
@@ -1850,8 +1819,7 @@ class _TestSFTP(_CheckSFTP):
     def test_immediate_client_close(self):
         """Test closing SFTP channel immediately after opening"""
 
-        @asyncio.coroutine
-        def _closing_start(self):
+            async def _closing_start(self):
             """Immediately close the SFTP channel"""
 
             self.exit()
@@ -1862,8 +1830,7 @@ class _TestSFTP(_CheckSFTP):
     def test_no_init(self):
         """Test sending non-init request at start"""
 
-        @asyncio.coroutine
-        def _no_init_start(self):
+            async def _no_init_start(self):
             """Send a non-init request at start"""
 
             self.send_packet(FXP_OPEN, 0, UInt32(0))
@@ -1874,8 +1841,7 @@ class _TestSFTP(_CheckSFTP):
     def test_incomplete_init_request(self):
         """Test sending init with missing version"""
 
-        @asyncio.coroutine
-        def _missing_version_start(self):
+            async def _missing_version_start(self):
             """Send an init request with missing version"""
 
             self.send_packet(FXP_INIT, None)
@@ -1887,8 +1853,7 @@ class _TestSFTP(_CheckSFTP):
     def test_incomplete_version_response(self):
         """Test sending an incomplete version response"""
 
-        @asyncio.coroutine
-        def _incomplete_version_response(self):
+            async def _incomplete_version_response(self):
             """Send an incomplete version response"""
 
             packet = yield from SFTPHandler.recv_packet(self)
@@ -1911,8 +1876,7 @@ class _TestSFTP(_CheckSFTP):
     def test_non_version_response(self):
         """Test sending a non-version message in response to init"""
 
-        @asyncio.coroutine
-        def _non_version_response(self):
+            async def _non_version_response(self):
             """Send a non-version response to init"""
 
             packet = yield from SFTPHandler.recv_packet(self)
@@ -1927,8 +1891,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unsupported_version_response(self):
         """Test sending an unsupported version in response to init"""
 
-        @asyncio.coroutine
-        def _unsupported_version_response(self):
+            async def _unsupported_version_response(self):
             """Send an unsupported version in response to init"""
 
             packet = yield from SFTPHandler.recv_packet(self)
@@ -1957,8 +1920,7 @@ class _TestSFTP(_CheckSFTP):
     def test_close_after_init(self):
         """Test close immediately after init request at start"""
 
-        @asyncio.coroutine
-        def _close_after_init_start(self):
+            async def _close_after_init_start(self):
             """Send a close immediately after init request at start"""
 
             self.send_packet(FXP_INIT, None, UInt32(3))
@@ -1971,8 +1933,7 @@ class _TestSFTP(_CheckSFTP):
     def test_file_handle_skip(self):
         """Test skipping over a file handle already in use"""
 
-        @asyncio.coroutine
-        def _reset_file_handle(self, sftp):
+            async def _reset_file_handle(self, sftp):
             """Open multiple files, resetting next handle each time"""
 
             file1 = None
@@ -2004,8 +1965,7 @@ class _TestSFTP(_CheckSFTP):
     def test_missing_request_pktid(self, sftp):
         """Test sending request without a packet ID"""
 
-        @asyncio.coroutine
-        def _missing_pktid(self, filename, pflags, attrs):
+            async def _missing_pktid(self, filename, pflags, attrs):
             """Send a request without a packet ID"""
 
             # pylint: disable=unused-argument
@@ -2019,8 +1979,7 @@ class _TestSFTP(_CheckSFTP):
     def test_malformed_open_request(self, sftp):
         """Test sending malformed open request"""
 
-        @asyncio.coroutine
-        def _malformed_open(self, filename, pflags, attrs):
+            async def _malformed_open(self, filename, pflags, attrs):
             """Send a malformed open request"""
 
             # pylint: disable=unused-argument
@@ -2035,8 +1994,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unknown_request(self, sftp):
         """Test sending unknown request type"""
 
-        @asyncio.coroutine
-        def _unknown_request(self, filename, pflags, attrs):
+            async def _unknown_request(self, filename, pflags, attrs):
             """Send a request with an unknown type"""
 
             # pylint: disable=unused-argument
@@ -2051,8 +2009,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unrecognized_response_pktid(self, sftp):
         """Test sending a response with an unrecognized packet ID"""
 
-        @asyncio.coroutine
-        def _unrecognized_response_pktid(self, pkttype, pktid, packet):
+            async def _unrecognized_response_pktid(self, pkttype, pktid, packet):
             """Send a response with an unrecognized packet ID"""
 
             # pylint: disable=unused-argument
@@ -2069,8 +2026,7 @@ class _TestSFTP(_CheckSFTP):
     def test_bad_response_type(self, sftp):
         """Test sending a response with an incorrect response type"""
 
-        @asyncio.coroutine
-        def _bad_response_type(self, pkttype, pktid, packet):
+            async def _bad_response_type(self, pkttype, pktid, packet):
             """Send a response with an incorrect response type"""
 
             # pylint: disable=unused-argument
@@ -2086,8 +2042,7 @@ class _TestSFTP(_CheckSFTP):
     def test_unexpected_ok_response(self, sftp):
         """Test sending an unexpected FX_OK response"""
 
-        @asyncio.coroutine
-        def _unexpected_ok_response(self, pkttype, pktid, packet):
+            async def _unexpected_ok_response(self, pkttype, pktid, packet):
             """Send an unexpected FX_OK response"""
 
             # pylint: disable=unused-argument
@@ -2104,8 +2059,7 @@ class _TestSFTP(_CheckSFTP):
     def test_malformed_ok_response(self, sftp):
         """Test sending an FX_OK response containing invalid Unicode"""
 
-        @asyncio.coroutine
-        def _malformed_ok_response(self, pkttype, pktid, packet):
+            async def _malformed_ok_response(self, pkttype, pktid, packet):
             """Send an FX_OK response containing invalid Unicode"""
 
             # pylint: disable=unused-argument
@@ -2122,8 +2076,7 @@ class _TestSFTP(_CheckSFTP):
     def test_malformed_realpath_response(self, sftp):
         """Test receiving malformed realpath response"""
 
-        @asyncio.coroutine
-        def _malformed_realpath(self, path):
+            async def _malformed_realpath(self, path):
             """Return a malformed realpath response"""
 
             # pylint: disable=unused-argument
@@ -2139,8 +2092,7 @@ class _TestSFTP(_CheckSFTP):
     def test_malformed_readlink_response(self, sftp):
         """Test receiving malformed readlink response"""
 
-        @asyncio.coroutine
-        def _malformed_readlink(self, path):
+            async def _malformed_readlink(self, path):
             """Return a malformed readlink response"""
 
             # pylint: disable=unused-argument
@@ -2190,8 +2142,7 @@ class _TestSFTP(_CheckSFTP):
     def test_write_close(self):
         """Test session cleanup in the middle of a write request"""
 
-        @asyncio.coroutine
-        def _write_close(self, sftp):
+            async def _write_close(self, sftp):
             """Initiate write that triggers cleanup"""
 
             # pylint: disable=unused-argument
@@ -2212,8 +2163,7 @@ class _TestSFTP(_CheckSFTP):
     def test_outstanding_nonblocking_close(self):
         """Test session cleanup with an outstanding non-blocking close"""
 
-        @asyncio.coroutine
-        def _nonblocking_close(self, sftp):
+            async def _nonblocking_close(self, sftp):
             """Initiate nonblocking close that triggers cleanup"""
 
             # pylint: disable=unused-argument
@@ -2967,8 +2917,7 @@ class _TestSCP(_CheckSCP):
     def test_put_read_error(self):
         """Test read errors when putting a file over SCP"""
 
-        @asyncio.coroutine
-        def _read_error(self, size, offset):
+            async def _read_error(self, size, offset):
             """Return an error for reads past 64 KB in a file"""
 
             if offset >= 65536:
@@ -2991,8 +2940,7 @@ class _TestSCP(_CheckSCP):
     def test_put_read_early_eof(self):
         """Test getting early EOF when putting a file over SCP"""
 
-        @asyncio.coroutine
-        def _read_early_eof(self, size, offset):
+            async def _read_early_eof(self, size, offset):
             """Return an early EOF for reads past 64 KB in a file"""
 
             if offset >= 65536:
@@ -3393,8 +3341,7 @@ class _TestSCPErrors(_CheckSCP):
     def start_server(cls):
         """Start an SFTP server which returns file I/O errors"""
 
-        @asyncio.coroutine
-        def _handle_client(process):
+            async def _handle_client(process):
             """Handle new client"""
 
             with process:

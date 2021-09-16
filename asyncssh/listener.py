@@ -58,8 +58,7 @@ class SSHListener(asyncio.AbstractServer):
 
         raise NotImplementedError
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for the listener to close
 
            This method is a coroutine which waits for the associated
@@ -83,8 +82,7 @@ class SSHClientListener(SSHListener):
         self._max_pktsize = max_pktsize
         self._close_event = asyncio.Event(loop=loop)
 
-    @asyncio.coroutine
-    def _close(self):
+    async def _close(self):
         """Close this listener"""
 
         self._close_event.set()
@@ -96,8 +94,7 @@ class SSHClientListener(SSHListener):
         if self._conn:
             self._conn.create_task(self._close())
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for this listener to finish closing"""
 
         yield from self._close_event.wait()
@@ -114,8 +111,7 @@ class SSHTCPClientListener(SSHClientListener):
         self._listen_host = listen_host
         self._listen_port = listen_port
 
-    @asyncio.coroutine
-    def _close(self):
+    async def _close(self):
         """Close this listener"""
 
         if self._conn: # pragma: no branch
@@ -151,8 +147,7 @@ class SSHUNIXClientListener(SSHClientListener):
 
         self._listen_path = listen_path
 
-    @asyncio.coroutine
-    def _close(self):
+    async def _close(self):
         """Close this listener"""
 
         if self._conn: # pragma: no branch
@@ -189,8 +184,7 @@ class SSHForwardListener(SSHListener):
         for server in self._servers:
             server.close()
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """Wait for this listener to finish closing"""
 
         for server in self._servers:

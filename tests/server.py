@@ -64,8 +64,7 @@ class ServerTestCase(AsyncTestCase):
     _agent_pid = None
 
     @classmethod
-    @asyncio.coroutine
-    def create_server(cls, server_factory=(), *, loop=(),
+    async def create_server(cls, server_factory=(), *, loop=(),
                       server_host_keys=(), gss_host=None, **kwargs):
         """Create an SSH server for the tests to use"""
 
@@ -83,15 +82,13 @@ class ServerTestCase(AsyncTestCase):
             server_host_keys=server_host_keys, gss_host=gss_host, **kwargs))
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
         return (yield from cls.create_server())
 
     @classmethod
-    @asyncio.coroutine
-    def asyncSetUpClass(cls):
+    async def asyncSetUpClass(cls):
         """Set up keys, an SSH server, and an SSH agent for the tests to use"""
 
         # pylint: disable=too-many-statements
@@ -263,8 +260,7 @@ class ServerTestCase(AsyncTestCase):
             pass
 
     @classmethod
-    @asyncio.coroutine
-    def asyncTearDownClass(cls):
+    async def asyncTearDownClass(cls):
         """Shut down test server and agent"""
 
         # Wait a bit for existing tasks to exit

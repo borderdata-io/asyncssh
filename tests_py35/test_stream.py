@@ -39,13 +39,13 @@ class _TestStream(ServerTestCase):
     # pylint: disable=not-async-context-manager
 
     @classmethod
-    async def start_server(cls):
+async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
         return await cls.create_server(_StreamServer)
 
     @asynctest35
-    async def test_async_iterator(self):
+async def test_async_iterator(self):
         """Test reading lines by using SSHReader as an async iterator"""
 
         async with self.connect() as conn:

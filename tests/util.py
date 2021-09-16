@@ -231,8 +231,7 @@ class ConnectionStub:
 
         return self._logger
 
-    @asyncio.coroutine
-    def _run_task(self, coro):
+    async def _run_task(self, coro):
         """Run an asynchronous task"""
 
         # pylint: disable=broad-except
@@ -264,8 +263,7 @@ class ConnectionStub:
 
         return self._peer
 
-    @asyncio.coroutine
-    def _process_packets(self):
+    async def _process_packets(self):
         """Process the queue of incoming packets"""
 
         while True:

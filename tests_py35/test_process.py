@@ -30,13 +30,13 @@ class _TestStream(ServerTestCase):
     # pylint: disable=not-async-context-manager
 
     @classmethod
-    async def start_server(cls):
+async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
         return await cls.create_server(session_factory=echo)
 
     @asynctest35
-    async def test_shell(self):
+async def test_shell(self):
         """Test starting a remote shell"""
 
         data = str(id(self))

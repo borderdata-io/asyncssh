@@ -181,13 +181,11 @@ def async_context_manager(coro):
         def __await__(self):
             return (yield from self._coro)
 
-        @asyncio.coroutine
-        def __aenter__(self):
+        async def __aenter__(self):
             self._result = yield from self._coro
             return (yield from self._result.__aenter__())
 
-        @asyncio.coroutine
-        def __aexit__(self, *exc_info):
+        async def __aexit__(self, *exc_info):
             yield from self._result.__aexit__(*exc_info)
             self._result = None
 

@@ -70,8 +70,7 @@ class _ReplayKexClientConnection(asyncssh.SSHClientConnection):
 class _KeepaliveClientConnection(asyncssh.SSHClientConnection):
     """Test sending keepalive request"""
 
-    @asyncio.coroutine
-    def send_keepalive_request(self):
+    async def send_keepalive_request(self):
         """Send a keepalive global request"""
 
         return (yield from self._make_global_request(b'keepalive@openssh.com'))
@@ -199,8 +198,7 @@ class _CloseDuringAuthServer(Server):
 
         return True
 
-    @asyncio.coroutine
-    def validate_password(self, username, password):
+    async def validate_password(self, username, password):
         """Delay validating password"""
 
         # pylint: disable=unused-argument

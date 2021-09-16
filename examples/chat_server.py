@@ -36,7 +36,7 @@ class ChatClient:
         self._process = process
 
     @classmethod
-    async def handle_client(cls, process):
+async def handle_client(cls, process):
         await cls(process).run()
 
     def write(self, msg):
@@ -47,7 +47,7 @@ class ChatClient:
             if client != self:
                 client.write(msg)
 
-    async def run(self):
+async def run(self):
         self.write('Welcome to chat!\n\n')
 
         self.write('Enter your name: ')

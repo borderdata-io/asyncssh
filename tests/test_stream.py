@@ -85,14 +85,12 @@ class _TestStream(ServerTestCase):
     """Unit tests for AsyncSSH stream API"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
         return (yield from cls.create_server(_StreamServer))
 
-    @asyncio.coroutine
-    def _check_session(self, conn, large_block=False):
+    async def _check_session(self, conn, large_block=False):
         """Open a session and test if an input line is echoed back"""
 
         stdin, stdout, stderr = yield from conn.open_session('echo_stderr')

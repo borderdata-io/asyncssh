@@ -292,8 +292,7 @@ class SSHX11ClientListener:
 
         return self._remote_auth == {}
 
-    @asyncio.coroutine
-    def forward_connection(self):
+    async def forward_connection(self):
         """Forward an incoming connection to the local X server"""
 
         try:

@@ -143,8 +143,7 @@ class SSHLocalForwarder(SSHForwarder):
         self._conn = conn
         self._coro = coro
 
-    @asyncio.coroutine
-    def _forward(self, *args):
+    async def _forward(self, *args):
         """Begin local forwarding"""
 
         def session_factory():

@@ -66,8 +66,7 @@ class _ClientChannel(asyncssh.SSHClientChannel):
 
         self._send_request(request, *args)
 
-    @asyncio.coroutine
-    def make_request(self, request, *args):
+    async def make_request(self, request, *args):
         """Make a custom request (for unit testing)"""
 
         return (yield from self._make_request(request, *args))
