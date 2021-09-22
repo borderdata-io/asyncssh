@@ -48,7 +48,7 @@ randrange = _random.randrange
 # Avoid deprecation warning for asyncio.async()
 if python344:
     create_task = asyncio.ensure_future
-else: # pragma: no cover
+else:  # pragma: no cover
     create_task = getattr(asyncio, 'async')
 
 
@@ -87,6 +87,7 @@ def get_symbol_names(symbols, prefix, strip_leading=0):
 # Punctuation to map when creating handler names
 _HANDLER_PUNCTUATION = (('@', '_at_'), ('.', '_dot_'), ('-', '_'))
 
+
 def map_handler_name(name):
     """Map punctuation so a string can be used as a handler name"""
 
@@ -117,7 +118,7 @@ def _normalize_scoped_ip(addr):
         addr = sa[0]
 
         idx = addr.find('%')
-        if idx >= 0: # pragma: no cover
+        if idx >= 0:  # pragma: no cover
             addr = addr[:idx]
 
         ip = ipaddress.ip_address(addr)
@@ -176,7 +177,7 @@ def async_context_manager(coro):
             self._result = None
 
         def __await__(self):
-            return (await self._coro)
+            return self._coro.__await__()
 
         async def __aenter__(self):
             self._result = await self._coro
