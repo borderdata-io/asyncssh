@@ -97,7 +97,7 @@ class SSHClientListener(SSHListener):
     async def wait_closed(self):
         """Wait for this listener to finish closing"""
 
-        yield from self._close_event.wait()
+        await self._close_event.wait()
 
 
 class SSHTCPClientListener(SSHClientListener):
@@ -115,10 +115,10 @@ class SSHTCPClientListener(SSHClientListener):
         """Close this listener"""
 
         if self._conn: # pragma: no branch
-            yield from self._conn.close_client_tcp_listener(self._listen_host,
+            await self._conn.close_client_tcp_listener(self._listen_host,
                                                             self._listen_port)
 
-        yield from super()._close()
+        await super()._close()
 
     def process_connection(self, orig_host, orig_port):
         """Process a forwarded TCP connection"""
@@ -151,9 +151,9 @@ class SSHUNIXClientListener(SSHClientListener):
         """Close this listener"""
 
         if self._conn: # pragma: no branch
-            yield from self._conn.close_client_unix_listener(self._listen_path)
+            await self._conn.close_client_unix_listener(self._listen_path)
 
-        yield from super()._close()
+        await super()._close()
 
     def process_connection(self):
         """Process a forwarded UNIX connection"""
@@ -188,20 +188,19 @@ class SSHForwardListener(SSHListener):
         """Wait for this listener to finish closing"""
 
         for server in self._servers:
-            yield from server.wait_closed()
+            await server.wait_closed()
 
         self._servers = []
 
 
-@asyncio.coroutine
-def create_tcp_local_listener(conn, loop, protocol_factory,
+async def create_tcp_local_listener(conn, loop, protocol_factory,
                               listen_host, listen_port):
     """Create a listener to forward traffic from a local TCP port over SSH"""
 
     if listen_host == '':
         listen_host = None
 
-    addrinfo = yield from loop.getaddrinfo(listen_host, listen_port,
+    addrinfo = await loop.getaddrinfo(listen_host, listen_port,
                                            family=socket.AF_UNSPEC,
                                            type=socket.SOCK_STREAM,
                                            flags=socket.AI_PASSIVE)
@@ -247,14 +246,13 @@ def create_tcp_local_listener(conn, loop, protocol_factory,
             listen_port = sock.getsockname()[1]
             conn.logger.debug1('Assigning dynamic port %d', listen_port)
 
-        server = yield from loop.create_server(protocol_factory, sock=sock)
+        server = await loop.create_server(protocol_factory, sock=sock)
         servers.append(server)
 
     return SSHForwardListener(servers, listen_port)
 
 
-@asyncio.coroutine
-def create_tcp_forward_listener(conn, loop, coro, listen_host, listen_port):
+async def create_tcp_forward_listener(conn, loop, coro, listen_host, listen_port):
     """Create a listener to forward traffic from a local TCP port over SSH"""
 
     def protocol_factory():
@@ -266,8 +264,7 @@ def create_tcp_forward_listener(conn, loop, coro, listen_host, listen_port):
                                      listen_host, listen_port)
 
 
-@asyncio.coroutine
-def create_unix_forward_listener(conn, loop, coro, listen_path):
+async def create_unix_forward_listener(conn, loop, coro, listen_path):
     """Create a listener to forward a local UNIX domain socket over SSH"""
 
     def protocol_factory():
@@ -275,13 +272,12 @@ def create_unix_forward_listener(conn, loop, coro, listen_path):
 
         return SSHLocalPathForwarder(conn, coro)
 
-    server = yield from loop.create_unix_server(protocol_factory, listen_path)
+    server = await loop.create_unix_server(protocol_factory, listen_path)
 
     return SSHForwardListener([server])
 
 
-@asyncio.coroutine
-def create_socks_listener(conn, loop, coro, listen_host, listen_port):
+async def create_socks_listener(conn, loop, coro, listen_host, listen_port):
     """Create a SOCKS listener to forward traffic over SSH"""
 
     def protocol_factory():

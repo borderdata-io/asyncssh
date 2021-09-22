@@ -77,7 +77,7 @@ class ServerTestCase(AsyncTestCase):
         if server_host_keys == ():
             server_host_keys = ['skey']
 
-        return (yield from asyncssh.create_server(
+        return (await asyncssh.create_server(
             server_factory, port=0, family=socket.AF_INET, loop=loop,
             server_host_keys=server_host_keys, gss_host=gss_host, **kwargs))
 
@@ -85,7 +85,7 @@ class ServerTestCase(AsyncTestCase):
     async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server())
+        return (await cls.create_server())
 
     @classmethod
     async def asyncSetUpClass(cls):
@@ -210,7 +210,7 @@ class ServerTestCase(AsyncTestCase):
                 with open('root_ca_cert.pub') as root_pub:
                     shutil.copyfileobj(root_pub, auth_keys_x509)
 
-        cls._server = yield from cls.start_server()
+        cls._server = await cls.start_server()
 
         sock = cls._server.sockets[0]
         cls._server_addr = '127.0.0.1'
@@ -252,8 +252,8 @@ class ServerTestCase(AsyncTestCase):
 
             os.environ['SSH_AUTH_SOCK'] = 'agent'
 
-            agent = yield from asyncssh.connect_agent()
-            yield from agent.add_keys([ckey_ecdsa, (ckey, ckey_cert)])
+            agent = await asyncssh.connect_agent()
+            await agent.add_keys([ckey_ecdsa, (ckey, ckey_cert)])
             agent.close()
 
         with open('ssh-keysign', 'wb'):
@@ -264,10 +264,10 @@ class ServerTestCase(AsyncTestCase):
         """Shut down test server and agent"""
 
         # Wait a bit for existing tasks to exit
-        yield from asyncio.sleep(1)
+        await asyncio.sleep(1)
 
         cls._server.close()
-        yield from cls._server.wait_closed()
+        await cls._server.wait_closed()
 
         if cls._agent_pid: # pragma: no branch
             os.kill(cls._agent_pid, signal.SIGTERM)
@@ -279,15 +279,14 @@ class ServerTestCase(AsyncTestCase):
 
         return bool(self._agent_pid)
 
-    @asyncio.coroutine
-    def create_connection(self, client_factory, loop=(),
+    async def create_connection(self, client_factory, loop=(),
                           gss_host=None, **kwargs):
         """Create a connection to the test server"""
 
         if loop == ():
             loop = self.loop
 
-        return (yield from asyncssh.create_connection(client_factory,
+        return (await asyncssh.create_connection(client_factory,
                                                       self._server_addr,
                                                       self._server_port,
                                                       loop=loop,
@@ -298,6 +297,6 @@ class ServerTestCase(AsyncTestCase):
     def connect(self, **kwargs):
         """Open a connection to the test server"""
 
-        conn, _ = yield from self.create_connection(None, **kwargs)
+        conn, _ = await self.create_connection(None, **kwargs)
 
         return conn

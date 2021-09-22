@@ -35,9 +35,9 @@ from .util import asynctest, echo
 def _handle_client(process):
     """Handle a new client request"""
 
-    yield from echo(process.stdin, process.stdout, process.stderr)
+    await echo(process.stdin, process.stdout, process.stderr)
     process.close()
-    yield from process.wait_closed()
+    await process.wait_closed()
 
 
 class _SFTPServer(SFTPServer):
@@ -56,11 +56,10 @@ class _TestLogging(ServerTestCase):
     """Unit tests for AsyncSSH logging API"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(process_factory=_handle_client,
+        return (await cls.create_server(process_factory=_handle_client,
                                              sftp_factory=_SFTPServer))
 
     @asynctest
@@ -117,7 +116,7 @@ class _TestLogging(ServerTestCase):
 
         asyncssh.set_log_level('INFO')
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             with self.assertLogs(level='INFO') as log:
                 conn.logger.info('Test')
 
@@ -130,15 +129,15 @@ class _TestLogging(ServerTestCase):
 
         asyncssh.set_log_level('INFO')
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             for i in range(2):
-                chan, _ = yield from conn.create_session(SSHClientSession)
+                chan, _ = await conn.create_session(SSHClientSession)
 
                 with self.assertLogs(level='INFO') as log:
                     chan.logger.info('Test')
 
                 chan.write_eof()
-                yield from chan.wait_closed()
+                await chan.wait_closed()
 
                 self.assertEqual(len(log.records), 1)
                 self.assertRegex(log.records[0].msg,
@@ -150,14 +149,14 @@ class _TestLogging(ServerTestCase):
 
         asyncssh.set_log_level('INFO')
 
-        with (yield from self.connect()) as conn:
-            stdin, _, _ = yield from conn.open_session()
+        with (await self.connect()) as conn:
+            stdin, _, _ = await conn.open_session()
 
             with self.assertLogs(level='INFO') as log:
                 stdin.logger.info('Test')
 
             stdin.write_eof()
-            yield from stdin.channel.wait_closed()
+            await stdin.channel.wait_closed()
 
         self.assertEqual(len(log.records), 1)
         self.assertRegex(log.records[0].msg, r'\[conn=\d+, chan=0\] Test')
@@ -168,14 +167,14 @@ class _TestLogging(ServerTestCase):
 
         asyncssh.set_log_level('INFO')
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
 
             with self.assertLogs(level='INFO') as log:
                 process.logger.info('Test')
 
             process.stdin.write_eof()
-            yield from process.wait()
+            await process.wait()
 
         asyncssh.set_log_level('WARNING')
 
@@ -188,14 +187,14 @@ class _TestLogging(ServerTestCase):
 
         asyncssh.set_sftp_log_level('INFO')
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.start_sftp_client()) as sftp:
+        with (await self.connect()) as conn:
+            with (await conn.start_sftp_client()) as sftp:
                 with self.assertLogs(level='INFO') as log:
                     sftp.logger.info('Test')
 
-                yield from sftp.stat('.')
+                await sftp.stat('.')
 
-            yield from sftp.wait_closed()
+            await sftp.wait_closed()
 
         asyncssh.set_sftp_log_level('WARNING')
 

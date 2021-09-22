@@ -133,13 +133,12 @@ def patch_gss(cls):
     return cls
 
 
-@asyncio.coroutine
-def echo(stdin, stdout, stderr=None):
+async def echo(stdin, stdout, stderr=None):
     """Echo data from stdin back to stdout and stderr (if open)"""
 
     try:
         while not stdin.at_eof():
-            data = yield from stdin.read(65536)
+            data = await stdin.read(65536)
 
             if data:
                 stdout.write(data)
@@ -147,10 +146,10 @@ def echo(stdin, stdout, stderr=None):
                 if stderr:
                     stderr.write(data)
 
-        yield from stdout.drain()
+        await stdout.drain()
 
         if stderr:
-            yield from stderr.drain()
+            await stderr.drain()
 
         stdout.write_eof()
     except SignalReceived as exc:
@@ -236,7 +235,7 @@ class ConnectionStub:
 
         # pylint: disable=broad-except
         try:
-            yield from coro
+            await coro
         except Exception as exc:
             if self._peer: # pragma: no branch
                 self.queue_packet(exc)
@@ -267,7 +266,7 @@ class ConnectionStub:
         """Process the queue of incoming packets"""
 
         while True:
-            data = yield from self._packet_queue.get()
+            data = await self._packet_queue.get()
 
             if data is None or isinstance(data, Exception):
                 self._queue_task = None

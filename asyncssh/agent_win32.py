@@ -151,8 +151,7 @@ class _W10OpenSSHTransport:
             self._agentfile = None
 
 
-@asyncio.coroutine
-def open_agent(loop, agent_path):
+async def open_agent(loop, agent_path):
     """Open a connection to the Pageant or Windows 10 OpenSSH agent"""
 
     # pylint: disable=unused-argument

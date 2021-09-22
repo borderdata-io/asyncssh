@@ -39,7 +39,7 @@ def _handle_session(stdin, stdout, stderr):
 
     while not stdin.at_eof():
         try:
-            data += yield from stdin.readline()
+            data += await stdin.readline()
         except asyncssh.BreakReceived:
             break_count += 1
             stdout.write('B')
@@ -67,7 +67,7 @@ def _handle_soft_eof(stdin, stdout, stderr):
     # pylint: disable=unused-argument
 
     while not stdin.at_eof():
-        data = yield from stdin.read()
+        data = await stdin.read()
         stdout.write(data or 'EOF\n')
 
     stdout.close()
@@ -76,13 +76,12 @@ def _handle_soft_eof(stdin, stdout, stderr):
 class _CheckEditor(ServerTestCase):
     """Utility functions for AsyncSSH line editor unit tests"""
 
-    @asyncio.coroutine
-    def check_input(self, input_data, expected_result,
+    async def check_input(self, input_data, expected_result,
                     term_type='ansi', set_width=False):
         """Feed input data and compare echoed back result"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(term_type=term_type)
+        with (await self.connect()) as conn:
+            process = await conn.create_process(term_type=term_type)
 
             process.stdin.write(input_data)
 
@@ -91,7 +90,7 @@ class _CheckEditor(ServerTestCase):
 
             process.stdin.write_eof()
 
-            output_data = (yield from process.wait()).stdout
+            output_data = (await process.wait()).stdout
 
         idx = output_data.rfind('>>>')
         self.assertNotEqual(idx, -1)
@@ -104,11 +103,10 @@ class _TestEditor(_CheckEditor):
     """Unit tests for AsyncSSH line editor"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(session_factory=_handle_session))
+        return (await cls.create_server(session_factory=_handle_session))
 
     @asynctest
     def test_editor(self):
@@ -146,7 +144,7 @@ class _TestEditor(_CheckEditor):
 
         for testname, input_data, expected_result in tests:
             with self.subTest(testname):
-                yield from self.check_input(input_data, expected_result)
+                await self.check_input(input_data, expected_result)
 
     @asynctest
     def test_non_wrap(self):
@@ -161,41 +159,41 @@ class _TestEditor(_CheckEditor):
 
         for testname, input_data, expected_result in tests:
             with self.subTest(testname):
-                yield from self.check_input(input_data, expected_result,
+                await self.check_input(input_data, expected_result,
                                             term_type='dumb')
 
     @asynctest
     def test_no_terminal(self):
         """Test that editor is disabled when no pseudo-terminal is requested"""
 
-        yield from self.check_input('abc\n', 'abc\n', term_type=None)
+        await self.check_input('abc\n', 'abc\n', term_type=None)
 
     @asynctest
     def test_change_width(self):
         """Test changing the terminal width"""
 
-        yield from self.check_input('abc\n', 'abc\r\n', set_width=True)
+        await self.check_input('abc\n', 'abc\r\n', set_width=True)
 
     @asynctest
     def test_change_width_non_wrap(self):
         """Test changing the terminal width when not wrapping"""
 
-        yield from self.check_input('abc\n', 'abc\r\n', term_type='dumb',
+        await self.check_input('abc\n', 'abc\r\n', term_type='dumb',
                                     set_width=True)
 
     @asynctest
     def test_editor_echo_off(self):
         """Test editor with echo disabled"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(term_type='ansi')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(term_type='ansi')
 
             process.stdin.write('\x03')
-            yield from process.stdout.readexactly(1)
+            await process.stdout.readexactly(1)
 
             process.stdin.write('abcd\x08\n')
             process.stdin.write_eof()
-            output_data = (yield from process.wait()).stdout
+            output_data = (await process.wait()).stdout
 
         self.assertEqual(output_data, '\r\n>>>abc\r\n')
 
@@ -203,20 +201,20 @@ class _TestEditor(_CheckEditor):
     def test_editor_echo_on(self):
         """Test editor with echo re-enabled"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(term_type='ansi')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(term_type='ansi')
 
             process.stdin.write('\x03')
-            yield from process.stdout.readexactly(1)
+            await process.stdout.readexactly(1)
 
             process.stdin.write('abc')
 
             process.stdin.write('\x03')
-            yield from process.stdout.readexactly(1)
+            await process.stdout.readexactly(1)
 
             process.stdin.write('\n')
             process.stdin.write_eof()
-            output_data = (yield from process.wait()).stdout
+            output_data = (await process.wait()).stdout
 
         self.assertEqual(output_data, 'abc\r\n>>>abc\r\n')
 
@@ -224,18 +222,18 @@ class _TestEditor(_CheckEditor):
     def test_editor_line_mode_off(self):
         """Test editor with line mode disabled"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(term_type='ansi')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(term_type='ansi')
 
             process.stdin.write('\x03\x03')
-            yield from process.stdout.readexactly(2)
+            await process.stdout.readexactly(2)
 
             process.stdin.write('abc\x03')
-            yield from process.stdout.readexactly(15)
+            await process.stdout.readexactly(15)
 
             process.stdin.write('\n')
             process.stdin.write_eof()
-            output_data = (yield from process.wait()).stdout
+            output_data = (await process.wait()).stdout
 
         self.assertEqual(output_data, 'abc\x1b[3D   \x1b[3D>>>abc\r\n')
 
@@ -244,73 +242,70 @@ class _TestEditorDisabled(_CheckEditor):
     """Unit tests for AsyncSSH line editor being disabled"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(session_factory=_handle_session,
+        return (await cls.create_server(session_factory=_handle_session,
                                              line_editor=False))
 
     @asynctest
     def test_editor_disabled(self):
         """Test that editor is disabled"""
 
-        yield from self.check_input('abc\n', 'abc\n')
+        await self.check_input('abc\n', 'abc\n')
 
 
 class _TestEditorEncodingNone(_CheckEditor):
     """Unit tests for AsyncSSH line editor disabled due to encoding None"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(session_factory=_handle_session,
+        return (await cls.create_server(session_factory=_handle_session,
                                              session_encoding=None))
 
     @asynctest
     def test_editor_disabled_encoding_none(self):
         """Test that editor is disabled when encoding is None"""
 
-        yield from self.check_input('abc\n', 'abc\n')
+        await self.check_input('abc\n', 'abc\n')
 
     @asynctest
     def test_change_width(self):
         """Test changing the terminal width"""
 
-        yield from self.check_input('abc\n', 'abc\n', set_width=True)
+        await self.check_input('abc\n', 'abc\n', set_width=True)
 
 
 class _TestEditorSoftEOF(_CheckEditor):
     """Unit tests for AsyncSSH line editor sending soft EOF"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(session_factory=_handle_soft_eof))
+        return (await cls.create_server(session_factory=_handle_soft_eof))
 
     @asynctest
     def test_editor_soft_eof(self):
         """Test editor sending soft EOF"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(term_type='ansi')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(term_type='ansi')
 
             process.stdin.write('\x04')
 
-            self.assertEqual((yield from process.stdout.readline()), 'EOF\r\n')
+            self.assertEqual((await process.stdout.readline()), 'EOF\r\n')
 
             process.stdin.write('abc\n\x04')
 
-            self.assertEqual((yield from process.stdout.readline()), 'abc\r\n')
-            self.assertEqual((yield from process.stdout.readline()), 'abc\r\n')
-            self.assertEqual((yield from process.stdout.readline()), 'EOF\r\n')
+            self.assertEqual((await process.stdout.readline()), 'abc\r\n')
+            self.assertEqual((await process.stdout.readline()), 'abc\r\n')
+            self.assertEqual((await process.stdout.readline()), 'EOF\r\n')
 
             process.stdin.write('abc\n')
             process.stdin.write_eof()
 
-            self.assertEqual((yield from process.stdout.read()),
+            self.assertEqual((await process.stdout.read()),
                              'abc\r\nabc\r\n')

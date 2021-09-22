@@ -150,13 +150,13 @@ class SSHAgentKeyPair(SSHKeyPair):
     async def sign(self, data):
         """Sign a block of data with this private key"""
 
-        return (yield from self._agent.sign(self.public_data,
+        return (await self._agent.sign(self.public_data,
                                             data, self._flags))
 
     async def remove(self):
         """Remove this key pair from the agent"""
 
-        yield from self._agent.remove_keys([self])
+        await self._agent.remove_keys([self])
 
 
 class SSHAgentClient:
@@ -196,26 +196,26 @@ class SSHAgentClient:
 
         if isinstance(self._agent_path, asyncssh.SSHServerConnection):
             self._reader, self._writer = \
-                yield from self._agent_path.open_agent_connection()
+                await self._agent_path.open_agent_connection()
         else:
             self._reader, self._writer = \
-                yield from open_agent(self._loop, self._agent_path)
+                await open_agent(self._loop, self._agent_path)
 
     async def _make_request(self, msgtype, *args):
         """Send an SSH agent request"""
 
-        with (yield from self._lock):
+        with (await self._lock):
             try:
                 if not self._writer:
-                    yield from self.connect()
+                    await self.connect()
 
                 payload = Byte(msgtype) + b''.join(args)
                 self._writer.write(UInt32(len(payload)) + payload)
 
-                resplen = yield from self._reader.readexactly(4)
+                resplen = await self._reader.readexactly(4)
                 resplen = int.from_bytes(resplen, 'big')
 
-                resp = yield from self._reader.readexactly(resplen)
+                resp = await self._reader.readexactly(resplen)
                 resp = SSHPacket(resp)
 
                 resptype = resp.get_byte()
@@ -236,7 +236,7 @@ class SSHAgentClient:
         """
 
         resptype, resp = \
-            yield from self._make_request(SSH_AGENTC_REQUEST_IDENTITIES)
+            await self._make_request(SSH_AGENTC_REQUEST_IDENTITIES)
 
         if resptype == SSH_AGENT_IDENTITIES_ANSWER:
             result = []
@@ -261,7 +261,7 @@ class SSHAgentClient:
         """Sign a block of data with the requested key"""
 
         resptype, resp = \
-            yield from self._make_request(SSH_AGENTC_SIGN_REQUEST,
+            await self._make_request(SSH_AGENTC_SIGN_REQUEST,
                                           String(key_blob), String(data),
                                           UInt32(flags))
 
@@ -320,7 +320,7 @@ class SSHAgentClient:
         for keypair in keypairs:
             comment = keypair.get_comment_bytes()
             resptype, resp = \
-                yield from self._make_request(msgtype,
+                await self._make_request(msgtype,
                                               keypair.get_agent_private_key(),
                                               String(comment or b''),
                                               constraints)
@@ -361,7 +361,7 @@ class SSHAgentClient:
                       if constraints else SSH_AGENTC_ADD_SMARTCARD_KEY
 
         resptype, resp = \
-            yield from self._make_request(msgtype, String(provider),
+            await self._make_request(msgtype, String(provider),
                                           String(pin or ''), constraints)
 
         if resptype == SSH_AGENT_SUCCESS:
@@ -384,7 +384,7 @@ class SSHAgentClient:
 
         for keypair in keylist:
             resptype, resp = \
-                yield from self._make_request(SSH_AGENTC_REMOVE_IDENTITY,
+                await self._make_request(SSH_AGENTC_REMOVE_IDENTITY,
                                               String(keypair.public_data))
 
             if resptype == SSH_AGENT_SUCCESS:
@@ -409,7 +409,7 @@ class SSHAgentClient:
         """
 
         resptype, resp = \
-            yield from self._make_request(SSH_AGENTC_REMOVE_SMARTCARD_KEY,
+            await self._make_request(SSH_AGENTC_REMOVE_SMARTCARD_KEY,
                                           String(provider), String(pin or ''))
 
         if resptype == SSH_AGENT_SUCCESS:
@@ -427,7 +427,7 @@ class SSHAgentClient:
         """
 
         resptype, resp = \
-            yield from self._make_request(SSH_AGENTC_REMOVE_ALL_IDENTITIES)
+            await self._make_request(SSH_AGENTC_REMOVE_ALL_IDENTITIES)
 
         if resptype == SSH_AGENT_SUCCESS:
             resp.check_end()
@@ -450,7 +450,7 @@ class SSHAgentClient:
 
         """
 
-        resptype, resp = yield from self._make_request(SSH_AGENTC_LOCK,
+        resptype, resp = await self._make_request(SSH_AGENTC_LOCK,
                                                        String(passphrase))
 
         if resptype == SSH_AGENT_SUCCESS:
@@ -474,7 +474,7 @@ class SSHAgentClient:
 
         """
 
-        resptype, resp = yield from self._make_request(SSH_AGENTC_UNLOCK,
+        resptype, resp = await self._make_request(SSH_AGENTC_UNLOCK,
                                                        String(passphrase))
 
         if resptype == SSH_AGENT_SUCCESS:
@@ -491,7 +491,7 @@ class SSHAgentClient:
 
         """
 
-        resptype, resp = yield from self._make_request(SSH_AGENTC_EXTENSION,
+        resptype, resp = await self._make_request(SSH_AGENTC_EXTENSION,
                                                        String('query'))
 
         if resptype == SSH_AGENT_SUCCESS:
@@ -525,8 +525,7 @@ class SSHAgentClient:
         self._cleanup()
 
 
-@asyncio.coroutine
-def connect_agent(agent_path=None, *, loop=None):
+async def connect_agent(agent_path=None, *, loop=None):
     """Make a connection to the SSH agent
 
        This function attempts to connect to an ssh-agent process
@@ -557,21 +556,20 @@ def connect_agent(agent_path=None, *, loop=None):
     agent = SSHAgentClient(loop, agent_path)
 
     try:
-        yield from agent.connect()
+        await agent.connect()
         return agent
     except (OSError, ChannelOpenError) as exc:
         logger.warning('Unable to contact agent: %s', exc)
         return None
 
 
-@asyncio.coroutine
-def create_agent_listener(conn, loop):
+async def create_agent_listener(conn, loop):
     """Create a listener for forwarding ssh-agent connections"""
 
     try:
         tempdir = tempfile.TemporaryDirectory(prefix='asyncssh-')
         path = os.path.join(tempdir.name, 'agent')
-        unix_listener = yield from create_unix_forward_listener(
+        unix_listener = await create_unix_forward_listener(
             conn, loop, conn.create_agent_connection, path)
 
         return _AgentListener(tempdir, path, unix_listener)

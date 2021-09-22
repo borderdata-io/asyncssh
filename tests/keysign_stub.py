@@ -30,8 +30,7 @@ from asyncssh.packet import Byte, String, SSHPacket
 class SSHKeysignStub:
     """Stub class to replace process running ssh-keysign"""
 
-    @asyncio.coroutine
-    def communicate(self, request):
+    async def communicate(self, request):
         """Process SSH key signing request"""
 
         # pylint: disable=no-self-use
@@ -56,8 +55,7 @@ class SSHKeysignStub:
             return String(Byte(KEYSIGN_VERSION) + String(sig)), b''
 
 
-@asyncio.coroutine
-def create_subprocess_exec_stub(*args, **kwargs):
+async def create_subprocess_exec_stub(*args, **kwargs):
     """Return a stub for a subprocess running the ssh-keysign executable"""
 
     # pylint: disable=unused-argument

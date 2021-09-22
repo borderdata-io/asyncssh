@@ -25,8 +25,7 @@ import errno
 import os
 
 
-@asyncio.coroutine
-def open_agent(loop, agent_path):
+async def open_agent(loop, agent_path):
     """Open a connection to ssh-agent"""
 
     if not loop:
@@ -38,4 +37,4 @@ def open_agent(loop, agent_path):
         if not agent_path:
             raise OSError(errno.ENOENT, 'Agent not found')
 
-    return (yield from asyncio.open_unix_connection(agent_path, loop=loop))
+    return (await asyncio.open_unix_connection(agent_path, loop=loop))

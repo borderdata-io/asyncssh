@@ -73,7 +73,7 @@ class _KeepaliveClientConnection(asyncssh.SSHClientConnection):
     async def send_keepalive_request(self):
         """Send a keepalive global request"""
 
-        return (yield from self._make_global_request(b'keepalive@openssh.com'))
+        return (await self._make_global_request(b'keepalive@openssh.com'))
 
 
 class _VersionedServerConnection(asyncssh.SSHServerConnection):
@@ -203,7 +203,7 @@ class _CloseDuringAuthServer(Server):
 
         # pylint: disable=unused-argument
 
-        yield from asyncio.sleep(1)
+        await asyncio.sleep(1)
         return False
 
 
@@ -256,45 +256,43 @@ class _TestConnection(ServerTestCase):
     # pylint: disable=too-many-public-methods
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server to connect to"""
 
-        return (yield from cls.create_server(gss_host=()))
+        return (await cls.create_server(gss_host=()))
 
-    @asyncio.coroutine
-    def _check_version(self, *args, **kwargs):
+    async def _check_version(self, *args, **kwargs):
         """Check alternate SSH server version lines"""
 
         with patch('asyncssh.connection.SSHServerConnection',
                    _VersionedServerConnection.create(*args, **kwargs)):
-            with (yield from self.connect()) as conn:
+            with (await self.connect()) as conn:
                 pass
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_connect_no_loop(self):
         """Test connecting with loop not specified"""
 
-        with (yield from self.connect(loop=None)) as conn:
+        with (await self.connect(loop=None)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_connect_failure(self):
         """Test failure connecting"""
 
         with self.assertRaises(OSError):
-            yield from asyncssh.connect('0.0.0.1')
+            await asyncssh.connect('0.0.0.1')
 
     @asynctest
     def test_connect_failure_without_agent(self):
         """Test failure connecting with SSH agent disabled"""
 
         with self.assertRaises(OSError):
-            yield from asyncssh.connect('0.0.0.1', agent_path=None)
+            await asyncssh.connect('0.0.0.1', agent_path=None)
 
     @asynctest
     def test_split_version(self):
@@ -302,88 +300,88 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHClientConnection',
                    _SplitClientConnection):
-            with (yield from self.connect()) as conn:
+            with (await self.connect()) as conn:
                 pass
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_version_1_99(self):
         """Test SSH server version 1.99"""
 
-        yield from self._check_version(b'SSH-1.99-Test')
+        await self._check_version(b'SSH-1.99-Test')
 
     @asynctest
     def test_text_before_version(self):
         """Test additional text before SSH server version"""
 
-        yield from self._check_version(leading_text=b'Test\r\n')
+        await self._check_version(leading_text=b'Test\r\n')
 
     @asynctest
     def test_version_without_cr(self):
         """Test SSH server version with LF instead of CRLF"""
 
-        yield from self._check_version(newline=b'\n')
+        await self._check_version(newline=b'\n')
 
     @asynctest
     def test_unknown_version(self):
         """Test unknown SSH server version"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self._check_version(b'SSH-1.0-Test')
+            await self._check_version(b'SSH-1.0-Test')
 
     @asynctest
     def test_no_server_host_keys(self):
         """Test starting a server with no host keys"""
 
         with self.assertRaises(ValueError):
-            yield from asyncssh.listen(server_host_keys=[], gss_host=None)
+            await asyncssh.listen(server_host_keys=[], gss_host=None)
 
     @asynctest
     def test_duplicate_type_server_host_keys(self):
         """Test starting a server with duplicate host key types"""
 
         with self.assertRaises(ValueError):
-            yield from asyncssh.listen(server_host_keys=['skey', 'skey'])
+            await asyncssh.listen(server_host_keys=['skey', 'skey'])
 
     @asynctest
     def test_known_hosts_none(self):
         """Test connecting with known hosts checking disabled"""
 
-        with (yield from self.connect(known_hosts=None)) as conn:
+        with (await self.connect(known_hosts=None)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_none_without_x509(self):
         """Test connecting with known hosts checking and X.509 disabled"""
 
-        with (yield from self.connect(known_hosts=None,
+        with (await self.connect(known_hosts=None,
                                       x509_trusted_certs=None)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_multiple_keys(self):
         """Test connecting with multiple trusted known hosts keys"""
 
-        with (yield from self.connect(known_hosts=(['skey.pub', 'skey.pub'],
+        with (await self.connect(known_hosts=(['skey.pub', 'skey.pub'],
                                                    [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_ca(self):
         """Test connecting with a known hosts CA"""
 
-        with (yield from self.connect(known_hosts=([], ['skey.pub'],
+        with (await self.connect(known_hosts=([], ['skey.pub'],
                                                    []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_bytes(self):
@@ -392,20 +390,20 @@ class _TestConnection(ServerTestCase):
         with open('skey.pub', 'rb') as f:
             skey = f.read()
 
-        with (yield from self.connect(known_hosts=([skey], [], []))) as conn:
+        with (await self.connect(known_hosts=([skey], [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_keylist_file(self):
         """Test connecting with known hosts passed as a keylist file"""
 
-        with (yield from self.connect(known_hosts=('skey.pub',
+        with (await self.connect(known_hosts=('skey.pub',
                                                    [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_known_hosts_sshkeys(self):
@@ -413,10 +411,10 @@ class _TestConnection(ServerTestCase):
 
         keylist = asyncssh.load_public_keys('skey.pub')
 
-        with (yield from self.connect(known_hosts=(keylist, [], []))) as conn:
+        with (await self.connect(known_hosts=(keylist, [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_read_known_hosts(self):
@@ -425,10 +423,10 @@ class _TestConnection(ServerTestCase):
         known_hosts_path = os.path.join('.ssh', 'known_hosts')
         known_hosts = asyncssh.read_known_hosts(known_hosts_path)
 
-        with (yield from self.connect(known_hosts=known_hosts)) as conn:
+        with (await self.connect(known_hosts=known_hosts)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_import_known_hosts(self):
@@ -439,31 +437,31 @@ class _TestConnection(ServerTestCase):
         with open(known_hosts_path, 'r') as f:
             known_hosts = asyncssh.import_known_hosts(f.read())
 
-        with (yield from self.connect(known_hosts=known_hosts)) as conn:
+        with (await self.connect(known_hosts=known_hosts)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_untrusted_known_hosts_key(self):
         """Test untrusted server host key"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=(['ckey.pub'], [], []))
+            await self.connect(known_hosts=(['ckey.pub'], [], []))
 
     @asynctest
     def test_untrusted_known_hosts_ca(self):
         """Test untrusted server CA key"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], ['ckey.pub'], []))
+            await self.connect(known_hosts=([], ['ckey.pub'], []))
 
     @asynctest
     def test_revoked_known_hosts_key(self):
         """Test revoked server host key"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=(['ckey.pub'], [],
+            await self.connect(known_hosts=(['ckey.pub'], [],
                                                  ['skey.pub']))
 
     @asynctest
@@ -471,7 +469,7 @@ class _TestConnection(ServerTestCase):
         """Test revoked server CA key"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], ['ckey.pub'],
+            await self.connect(known_hosts=([], ['ckey.pub'],
                                                  ['skey.pub']))
 
     @asynctest
@@ -479,7 +477,7 @@ class _TestConnection(ServerTestCase):
         """Test empty known hosts list"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], [], []))
+            await self.connect(known_hosts=([], [], []))
 
     @asynctest
     def test_invalid_server_host_key(self):
@@ -488,7 +486,7 @@ class _TestConnection(ServerTestCase):
         with patch('asyncssh.connection.SSHServerConnection',
                    _BadHostKeyServerConnection):
             with self.assertRaises(asyncssh.DisconnectError):
-                yield from self.connect()
+                await self.connect()
 
     @asynctest
     def test_kex_algs(self):
@@ -501,25 +499,25 @@ class _TestConnection(ServerTestCase):
                 continue
 
             with self.subTest(kex_alg=kex):
-                with (yield from self.connect(kex_algs=[kex],
+                with (await self.connect(kex_algs=[kex],
                                               gss_host='1')) as conn:
                     pass
 
-                yield from conn.wait_closed()
+                await conn.wait_closed()
 
     @asynctest
     def test_empty_kex_algs(self):
         """Test connecting with an empty list of key exchange algorithms"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(kex_algs=[])
+            await self.connect(kex_algs=[])
 
     @asynctest
     def test_invalid_kex_alg(self):
         """Test connecting with invalid key exchange algorithm"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(kex_algs=['xxx'])
+            await self.connect(kex_algs=['xxx'])
 
     @asynctest
     def test_unsupported_kex_alg(self):
@@ -532,7 +530,7 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.get_kex_algs', unsupported_kex_alg):
             with self.assertRaises(asyncssh.DisconnectError):
-                yield from self.connect(kex_algs=['fail'])
+                await self.connect(kex_algs=['fail'])
 
     @asynctest
     def test_skip_ext_info(self):
@@ -547,10 +545,10 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHConnection._get_ext_info_kex_alg',
                    skip_ext_info):
-            with (yield from self.connect()) as conn:
+            with (await self.connect()) as conn:
                 pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unknown_ext_info(self):
@@ -558,10 +556,10 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHServerConnection',
                    _ExtInfoServerConnection):
-            with (yield from self.connect()) as conn:
+            with (await self.connect()) as conn:
                 pass
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_server_ext_info(self):
@@ -575,10 +573,10 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHClientConnection.send_newkeys',
                    send_newkeys):
-            with (yield from self.connect()) as conn:
+            with (await self.connect()) as conn:
                 pass
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_encryption_algs(self):
@@ -587,24 +585,24 @@ class _TestConnection(ServerTestCase):
         for enc in get_encryption_algs():
             enc = enc.decode('ascii')
             with self.subTest(encryption_alg=enc):
-                with (yield from self.connect(encryption_algs=[enc])) as conn:
+                with (await self.connect(encryption_algs=[enc])) as conn:
                     pass
 
-                yield from conn.wait_closed()
+                await conn.wait_closed()
 
     @asynctest
     def test_empty_encryption_algs(self):
         """Test connecting with an empty list of encryption algorithms"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(encryption_algs=[])
+            await self.connect(encryption_algs=[])
 
     @asynctest
     def test_invalid_encryption_alg(self):
         """Test connecting with invalid encryption algorithm"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(encryption_algs=['xxx'])
+            await self.connect(encryption_algs=['xxx'])
 
     @asynctest
     def test_mac_algs(self):
@@ -613,11 +611,11 @@ class _TestConnection(ServerTestCase):
         for mac in get_mac_algs():
             mac = mac.decode('ascii')
             with self.subTest(mac_alg=mac):
-                with (yield from self.connect(encryption_algs=['aes128-ctr'],
+                with (await self.connect(encryption_algs=['aes128-ctr'],
                                               mac_algs=[mac])) as conn:
                     pass
 
-                yield from conn.wait_closed()
+                await conn.wait_closed()
 
     @asynctest
     def test_mac_verify_error(self):
@@ -627,7 +625,7 @@ class _TestConnection(ServerTestCase):
             for mac in ('hmac-sha2-256-etm@openssh.com', 'hmac-sha2-256'):
                 with self.subTest(mac_alg=mac):
                     with self.assertRaises(asyncssh.DisconnectError):
-                        yield from self.connect(encryption_algs=['aes128-ctr'],
+                        await self.connect(encryption_algs=['aes128-ctr'],
                                                 mac_algs=[mac])
 
     @asynctest
@@ -636,7 +634,7 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.encryption.GCMCipher', _FailingGCMCipher):
             with self.assertRaises(asyncssh.DisconnectError):
-                yield from self.connect(
+                await self.connect(
                     encryption_algs=['aes128-gcm@openssh.com'])
 
     @asynctest
@@ -644,14 +642,14 @@ class _TestConnection(ServerTestCase):
         """Test connecting with an empty list of MAC algorithms"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(mac_algs=[])
+            await self.connect(mac_algs=[])
 
     @asynctest
     def test_invalid_mac_alg(self):
         """Test connecting with invalid MAC algorithm"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(mac_algs=['xxx'])
+            await self.connect(mac_algs=['xxx'])
 
     @asynctest
     def test_compression_algs(self):
@@ -660,95 +658,95 @@ class _TestConnection(ServerTestCase):
         for cmp in get_compression_algs():
             cmp = cmp.decode('ascii')
             with self.subTest(cmp_alg=cmp):
-                with (yield from self.connect(compression_algs=[cmp])) as conn:
+                with (await self.connect(compression_algs=[cmp])) as conn:
                     pass
 
-                yield from conn.wait_closed()
+                await conn.wait_closed()
 
     @asynctest
     def test_no_compression(self):
         """Test connecting with compression disabled"""
 
-        with (yield from self.connect(compression_algs=None)) as conn:
+        with (await self.connect(compression_algs=None)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_cmp_alg(self):
         """Test connecting with invalid compression algorithm"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(compression_algs=['xxx'])
+            await self.connect(compression_algs=['xxx'])
 
     @asynctest
     def test_disconnect(self):
         """Test sending disconnect message"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.disconnect(asyncssh.DISC_BY_APPLICATION, 'Closing')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_disconnect(self):
         """Test sending disconnect message with invalid Unicode in it"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.disconnect(asyncssh.DISC_BY_APPLICATION, b'\xff')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_debug(self):
         """Test sending debug message"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             conn.send_debug('debug')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_debug(self):
         """Test sending debug message with invalid Unicode in it"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_debug(b'\xff')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_service_request(self):
         """Test invalid service request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_SERVICE_REQUEST, String('xxx'))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_service_accept(self):
         """Test invalid service accept"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_SERVICE_ACCEPT, String('xxx'))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_packet_decode_error(self):
         """Test SSH packet decode error"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_DEBUG)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_keepalive(self):
@@ -756,31 +754,31 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHClientConnection',
                    _KeepaliveClientConnection):
-            with (yield from self.connect(compression_algs=None)) as conn:
-                self.assertTrue((yield from conn.send_keepalive_request()))
+            with (await self.connect(compression_algs=None)) as conn:
+                self.assertTrue((await conn.send_keepalive_request()))
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_unknown_packet(self):
         """Test unknown SSH packet"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             conn.send_packet(0xff)
-            yield from asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_rekey(self):
         """Test SSH re-keying"""
 
-        with (yield from self.connect(rekey_bytes=1)) as conn:
-            yield from asyncio.sleep(0.1)
+        with (await self.connect(rekey_bytes=1)) as conn:
+            await asyncio.sleep(0.1)
             conn.send_debug('test')
-            yield from asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_kex_in_progress(self):
@@ -788,18 +786,18 @@ class _TestConnection(ServerTestCase):
 
         with patch('asyncssh.connection.SSHClientConnection',
                    _ReplayKexClientConnection):
-            conn = yield from self.connect()
+            conn = await self.connect()
 
             conn.replay_kex()
             conn.replay_kex()
 
-            yield from conn.wait_closed()
+            await conn.wait_closed()
 
     @asynctest
     def test_no_matching_kex_algs(self):
         """Test no matching key exchange algorithms"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_KEXINIT, os.urandom(16), NameList([b'xxx']),
                          NameList([]), NameList([]), NameList([]),
@@ -807,13 +805,13 @@ class _TestConnection(ServerTestCase):
                          NameList([]), NameList([]), NameList([]),
                          Boolean(False), UInt32(0))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_no_matching_host_key_algs(self):
         """Test no matching server host key algorithms"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_KEXINIT, os.urandom(16),
                          NameList([b'ecdh-sha2-nistp521']), NameList([b'xxx']),
@@ -821,230 +819,228 @@ class _TestConnection(ServerTestCase):
                          NameList([]), NameList([]), NameList([]),
                          NameList([]), NameList([]), Boolean(False), UInt32(0))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_newkeys(self):
         """Test invalid new keys request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_NEWKEYS)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_userauth_service(self):
         """Test invalid service in userauth request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_USERAUTH_REQUEST, String('guest'),
                          String('xxx'), String('none'))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_username(self):
         """Test invalid username in userauth request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_USERAUTH_REQUEST, String(b'\xff'),
                          String('ssh-connection'), String('none'))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_extra_userauth_request(self):
         """Test userauth request after auth is complete"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             conn.send_packet(MSG_USERAUTH_REQUEST, String('guest'),
                              String('ssh-connection'), String('none'))
-            yield from asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unexpected_userauth_success(self):
         """Test unexpected userauth success response"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_USERAUTH_SUCCESS)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unexpected_userauth_failure(self):
         """Test unexpected userauth failure response"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_USERAUTH_FAILURE, NameList([]), Boolean(False))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unexpected_userauth_banner(self):
         """Test unexpected userauth banner"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_USERAUTH_BANNER, String(''), String(''))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_global_request(self):
         """Test invalid global request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_GLOBAL_REQUEST, String(b'\xff'),
                          Boolean(True))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unexpected_global_response(self):
         """Test unexpected global response"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_GLOBAL_REQUEST, String('xxx'), Boolean(True))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_channel_open(self):
         """Test invalid channel open request"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN, String(b'\xff'),
                          UInt32(0), UInt32(0), UInt32(0))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unknown_channel_type(self):
         """Test unknown channel open type"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN, String('xxx'),
                          UInt32(0), UInt32(0), UInt32(0))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_channel_open_confirmation_number(self):
         """Test invalid channel number in open confirmation"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN_CONFIRMATION, UInt32(0xff),
                          UInt32(0), UInt32(0), UInt32(0))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_channel_open_failure_number(self):
         """Test invalid channel number in open failure"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN_FAILURE, UInt32(0xff),
                          UInt32(0), String(''), String(''))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_channel_open_failure_reason(self):
         """Test invalid reason in channel open failure"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN_FAILURE, UInt32(0),
                          UInt32(0), String(b'\xff'), String(''))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_channel_open_failure_language(self):
         """Test invalid language in channel open failure"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_OPEN_FAILURE, UInt32(0),
                          UInt32(0), String(''), String(b'\xff'))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_missing_data_channel_number(self):
         """Test missing channel number in channel data message"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_DATA)
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_invalid_data_channel_number(self):
         """Test invalid channel number in channel data message"""
 
-        conn = yield from self.connect()
+        conn = await self.connect()
 
         conn.send_packet(MSG_CHANNEL_DATA, UInt32(99), String(''))
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_internal_error(self):
         """Test internal error in client callback"""
 
         with self.assertRaises(RuntimeError):
-            yield from self.create_connection(_InternalErrorClient)
+            await self.create_connection(_InternalErrorClient)
 
 
 class _TestConnectionAbort(ServerTestCase):
     """Unit test for connection abort"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which aborts connections during auth"""
 
-        return (yield from cls.create_server(_AbortServer))
+        return (await cls.create_server(_AbortServer))
 
     @asynctest
     def test_abort(self):
         """Test connection abort"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect()
+            await self.connect()
 
 
 class _TestDuringAuth(ServerTestCase):
     """Unit test for operations during auth"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which aborts connections during auth"""
 
-        return (yield from cls.create_server(_CloseDuringAuthServer))
+        return (await cls.create_server(_CloseDuringAuthServer))
 
     @asynctest
     def test_close_during_auth(self):
         """Test connection close during long auth callback"""
 
         with self.assertRaises(asyncio.TimeoutError):
-            yield from asyncio.wait_for(self.connect(username='user',
+            await asyncio.wait_for(self.connect(username='user',
                                                      password=''), 0.5)
 
     @asynctest
@@ -1052,7 +1048,7 @@ class _TestDuringAuth(ServerTestCase):
         """Test sending a request prior to auth complete"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.create_connection(_PreAuthRequestClient,
+            await self.create_connection(_PreAuthRequestClient,
                                               username='user',
                                               compression_algs=['none'])
 
@@ -1062,30 +1058,29 @@ class _TestServerX509Self(ServerTestCase):
     """Unit test for server with self-signed X.509 host certificate"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server with a self-signed X.509 host certificate"""
 
-        return (yield from cls.create_server(
+        return (await cls.create_server(
             server_host_keys=['skey_x509_self']))
 
     @asynctest
     def test_connect_x509_self(self):
         """Test connecting with X.509 self-signed certificate"""
 
-        with (yield from self.connect(known_hosts=([], [], [],
+        with (await self.connect(known_hosts=([], [], [],
                                                    ['skey_x509_self.pem'],
                                                    [], [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_connect_x509_untrusted_self(self):
         """Test connecting with untrusted X.509 self-signed certficate"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(
+            await self.connect(
                 known_hosts=([], [], [], ['root_ca_cert.pem'], [], [], []))
 
     @asynctest
@@ -1093,7 +1088,7 @@ class _TestServerX509Self(ServerTestCase):
         """Test connecting with revoked X.509 self-signed certficate"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(
+            await self.connect(
                 known_hosts=([], [], [], ['root_ca_cert.pem'],
                              ['skey_x509_self.pem'], [], []))
 
@@ -1101,19 +1096,19 @@ class _TestServerX509Self(ServerTestCase):
     def test_connect_x509_trusted_subject(self):
         """Test connecting to server with trusted X.509 subject name"""
 
-        with (yield from self.connect(
+        with (await self.connect(
             known_hosts=([], [], [], [], [], ['OU=name'], ['OU=name1']),
             x509_trusted_certs=['skey_x509_self.pem'])) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_connect_x509_untrusted_subject(self):
         """Test connecting to server with untrusted X.509 subject name"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(
+            await self.connect(
                 known_hosts=([], [], [], [], [], ['OU=name1'], []),
                 x509_trusted_certs=['skey_x509_self.pem'])
 
@@ -1122,7 +1117,7 @@ class _TestServerX509Self(ServerTestCase):
         """Test connecting to server with revoked X.509 subject name"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(
+            await self.connect(
                 known_hosts=([], [], [], [], [], [], ['OU=name']),
                 x509_trusted_certs=['skey_x509_self.pem'])
 
@@ -1131,7 +1126,7 @@ class _TestServerX509Self(ServerTestCase):
         """Test connecting to X.509 server with X.509 disabled"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(
+            await self.connect(
                 known_hosts=([], [], [], [], [], ['OU=name'], []),
                 x509_trusted_certs=None)
 
@@ -1141,40 +1136,39 @@ class _TestServerX509Chain(ServerTestCase):
     """Unit test for server with X.509 host certificate chain"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server with an X.509 host certificate chain"""
 
-        return (yield from cls.create_server(
+        return (await cls.create_server(
             server_host_keys=['skey_x509_chain']))
 
     @asynctest
     def test_connect_x509_chain(self):
         """Test connecting with X.509 certificate chain"""
 
-        with (yield from self.connect(known_hosts=([], [], [],
+        with (await self.connect(known_hosts=([], [], [],
                                                    ['root_ca_cert.pem'],
                                                    [], [], []))) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_connect_x509_chain_cert_path(self):
         """Test connecting with X.509 certificate and certificate path"""
 
-        with (yield from self.connect(x509_trusted_cert_paths=['cert_path'],
+        with (await self.connect(x509_trusted_cert_paths=['cert_path'],
                                       known_hosts=b'\n')) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_connect_x509_untrusted_root(self):
         """Test connecting to server with untrusted X.509 root CA"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], [], [],
+            await self.connect(known_hosts=([], [], [],
                                                  ['skey_x509_self.pem'],
                                                  [], [], []))
 
@@ -1183,14 +1177,14 @@ class _TestServerX509Chain(ServerTestCase):
         """Test connecting to server with untrusted X.509 root CA"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=b'\n')
+            await self.connect(known_hosts=b'\n')
 
     @asynctest
     def test_connect_x509_revoked_intermediate(self):
         """Test connecting to server with revoked X.509 intermediate CA"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], [], [],
+            await self.connect(known_hosts=([], [], [],
                                                  ['root_ca_cert.pem'],
                                                  ['int_ca_cert.pem'],
                                                  [], []))
@@ -1200,27 +1194,26 @@ class _TestServerX509Chain(ServerTestCase):
         """Test passing in invalid trusted X.509 certificate path"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(x509_trusted_cert_paths='xxx')
+            await self.connect(x509_trusted_cert_paths='xxx')
 
 
 class _TestServerNoLoop(ServerTestCase):
     """Unit test for server with no loop specified"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which has no loop specified"""
 
-        return (yield from cls.create_server(loop=None))
+        return (await cls.create_server(loop=None))
 
     @asynctest
     def test_server_no_loop(self):
         """Test server with no loop specified"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
 
 @unittest.skipUnless(gss_available, 'GSS not available')
@@ -1229,166 +1222,159 @@ class _TestServerNoHostKey(ServerTestCase):
     """Unit test for server with no server host key"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which sets no server host keys"""
 
-        return (yield from cls.create_server(server_host_keys=None,
+        return (await cls.create_server(server_host_keys=None,
                                              gss_host='1'))
 
     @asynctest
     def test_gss_with_no_host_key(self):
         """Test GSS key exchange with no server host key specified"""
 
-        with (yield from self.connect(known_hosts=b'\n', gss_host='1',
+        with (await self.connect(known_hosts=b'\n', gss_host='1',
                                       x509_trusted_certs=None,
                                       x509_trusted_cert_paths=None)) as conn:
             pass
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_dh_with_no_host_key(self):
         """Test failure of DH key exchange with no server host key specified"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect()
+            await self.connect()
 
 
 class _TestServerInternalError(ServerTestCase):
     """Unit test for server internal error during auth"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which raises an error during auth"""
 
-        return (yield from cls.create_server(_InternalErrorServer))
+        return (await cls.create_server(_InternalErrorServer))
 
     @asynctest
     def test_server_internal_error(self):
         """Test server internal error during auth"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect()
+            await self.connect()
 
 
 class _TestInvalidAuthBanner(ServerTestCase):
     """Unit test for invalid auth banner"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which sends invalid auth banner"""
 
-        return (yield from cls.create_server(_InvalidAuthBannerServer))
+        return (await cls.create_server(_InvalidAuthBannerServer))
 
     @asynctest
     def test_abort(self):
         """Test server sending invalid auth banner"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect()
+            await self.connect()
 
 
 class _TestExpiredServerHostCertificate(ServerTestCase):
     """Unit tests for expired server host certificate"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server with an expired host certificate"""
 
-        return (yield from cls.create_server(server_host_keys=['exp_skey']))
+        return (await cls.create_server(server_host_keys=['exp_skey']))
 
     @asynctest
     def test_expired_server_host_cert(self):
         """Test expired server host certificate"""
 
         with self.assertRaises(asyncssh.DisconnectError):
-            yield from self.connect(known_hosts=([], ['skey.pub'], []))
+            await self.connect(known_hosts=([], ['skey.pub'], []))
 
 
 class _TestCustomClientVersion(ServerTestCase):
     """Unit test for custom SSH client version"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which sends client version in auth banner"""
 
-        return (yield from cls.create_server(_VersionReportingServer))
+        return (await cls.create_server(_VersionReportingServer))
 
-    @asyncio.coroutine
-    def _check_client_version(self, version):
+    async def _check_client_version(self, version):
         """Check custom client version"""
 
         conn, client = \
-            yield from self.create_connection(_VersionRecordingClient,
+            await self.create_connection(_VersionRecordingClient,
                                               client_version=version)
 
         with conn:
             self.assertEqual(client.reported_version, 'SSH-2.0-custom')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_custom_client_version(self):
         """Test custom client version"""
 
-        yield from self._check_client_version('custom')
+        await self._check_client_version('custom')
 
     @asynctest
     def test_custom_client_version_bytes(self):
         """Test custom client version set as bytes"""
 
-        yield from self._check_client_version(b'custom')
+        await self._check_client_version(b'custom')
 
     @asynctest
     def test_long_client_version(self):
         """Test client version which is too long"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(client_version=246*'a')
+            await self.connect(client_version=246*'a')
 
     @asynctest
     def test_nonprintable_client_version(self):
         """Test client version with non-printable character"""
 
         with self.assertRaises(ValueError):
-            yield from self.connect(client_version='xxx\0')
+            await self.connect(client_version='xxx\0')
 
 
 class _TestCustomServerVersion(ServerTestCase):
     """Unit test for custom SSH server version"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server which sends a custom version"""
 
-        return (yield from cls.create_server(server_version='custom'))
+        return (await cls.create_server(server_version='custom'))
 
     @asynctest
     def test_custom_server_version(self):
         """Test custom server version"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             version = conn.get_extra_info('server_version')
             self.assertEqual(version, 'SSH-2.0-custom')
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_long_server_version(self):
         """Test server version which is too long"""
 
         with self.assertRaises(ValueError):
-            yield from self.create_server(server_version=246*'a')
+            await self.create_server(server_version=246*'a')
 
     @asynctest
     def test_nonprintable_server_version(self):
         """Test server version with non-printable character"""
 
         with self.assertRaises(ValueError):
-            yield from self.create_server(server_version='xxx\0')
+            await self.create_server(server_version='xxx\0')

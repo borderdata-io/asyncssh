@@ -43,9 +43,9 @@ def agent_test(func):
     def agent_wrapper(self):
         """Run a test coroutine after connecting to an SSH agent"""
 
-        agent = yield from asyncssh.connect_agent()
-        yield from agent.remove_all()
-        yield from asyncio.coroutine(func)(self, agent)
+        agent = await asyncssh.connect_agent()
+        await agent.remove_all()
+        await asyncio.coroutine(func)(self, agent)
         agent.close()
 
     return agent_wrapper
@@ -59,8 +59,7 @@ class _Agent:
         self._path = None
         self._server = None
 
-    @asyncio.coroutine
-    def start(self, path):
+    async def start(self, path):
         """Start a new mock SSH agent"""
 
         self._path = path
@@ -68,22 +67,20 @@ class _Agent:
         # pylint doesn't think start_unix_server exists
         # pylint: disable=no-member
         self._server = \
-            yield from asyncio.start_unix_server(self.process_request, path)
+            await asyncio.start_unix_server(self.process_request, path)
 
-    @asyncio.coroutine
-    def process_request(self, _reader, writer):
+    async def process_request(self, _reader, writer):
         """Process a request sent to the mock SSH agent"""
 
-        yield from _reader.readexactly(4)
+        await _reader.readexactly(4)
         writer.write(self._response)
         writer.close()
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         """Shut down the mock SSH agent"""
 
         self._server.close()
-        yield from self._server.wait_closed()
+        await self._server.wait_closed()
 
         os.remove(self._path)
 
@@ -108,8 +105,7 @@ class _TestAPI(AsyncTestCase):
             os.chmod('ssh-askpass', 0o755)
 
     @classmethod
-    @asyncio.coroutine
-    def asyncSetUpClass(cls):
+    async def asyncSetUpClass(cls):
         """Set up keys and an SSH server for the tests to use"""
 
         os.environ['DISPLAY'] = ''
@@ -125,8 +121,7 @@ class _TestAPI(AsyncTestCase):
         os.environ['SSH_AUTH_SOCK'] = 'agent'
 
     @classmethod
-    @asyncio.coroutine
-    def asyncTearDownClass(cls):
+    async def asyncTearDownClass(cls):
         """Shut down agents"""
 
         os.kill(cls._agent_pid, signal.SIGTERM)
@@ -143,14 +138,14 @@ class _TestAPI(AsyncTestCase):
     def test_connection_failed(self):
         """Test failure in opening a connection to the agent"""
 
-        self.assertIsNone((yield from asyncssh.connect_agent('xxx')))
+        self.assertIsNone((await asyncssh.connect_agent('xxx')))
 
     @asynctest
     def test_no_auth_sock(self):
         """Test failure when no auth sock is set"""
 
         del os.environ['SSH_AUTH_SOCK']
-        self.assertIsNone((yield from asyncssh.connect_agent()))
+        self.assertIsNone((await asyncssh.connect_agent()))
         os.environ['SSH_AUTH_SOCK'] = 'agent'
 
     @asynctest
@@ -158,7 +153,7 @@ class _TestAPI(AsyncTestCase):
         """Test passing the event loop explicitly"""
 
         loop = asyncio.get_event_loop()
-        agent = yield from asyncssh.connect_agent(loop=loop)
+        agent = await asyncssh.connect_agent(loop=loop)
         self.assertIsNotNone(agent)
         agent.close()
 
@@ -166,7 +161,7 @@ class _TestAPI(AsyncTestCase):
     def test_get_keys(self, agent):
         """Test getting keys from the agent"""
 
-        keys = yield from agent.get_keys()
+        keys = await agent.get_keys()
         self.assertEqual(len(keys), len(self._public_keys))
 
     @agent_test
@@ -183,14 +178,14 @@ class _TestAPI(AsyncTestCase):
             pubkey = key.convert_to_public()
             cert = key.generate_user_certificate(key, 'name')
 
-            yield from agent.add_keys([(key, cert)])
-            agent_keys = yield from agent.get_keys()
+            await agent.add_keys([(key, cert)])
+            agent_keys = await agent.get_keys()
 
             for agent_key in agent_keys:
-                sig = yield from agent_key.sign(b'test')
+                sig = await agent_key.sign(b'test')
                 self.assertTrue(pubkey.verify(b'test', sig))
 
-            yield from agent.remove_keys(agent_keys)
+            await agent.remove_keys(agent_keys)
 
     @agent_test
     def test_reconnect(self, agent):
@@ -199,45 +194,45 @@ class _TestAPI(AsyncTestCase):
         key = asyncssh.generate_private_key('ssh-rsa')
         pubkey = key.convert_to_public()
 
-        yield from agent.add_keys([key])
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key])
+        agent_keys = await agent.get_keys()
         agent.close()
 
         for agent_key in agent_keys:
-            sig = yield from agent_key.sign(b'test')
+            sig = await agent_key.sign(b'test')
             self.assertTrue(pubkey.verify(b'test', sig))
 
     @agent_test
     def test_add_remove_keys(self, agent):
         """Test adding and removing keys"""
 
-        yield from agent.add_keys()
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys()
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 0)
 
         key = asyncssh.generate_private_key('ssh-rsa')
-        yield from agent.add_keys([key])
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key])
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 1)
 
-        yield from agent.remove_keys(agent_keys)
-        agent_keys = yield from agent.get_keys()
+        await agent.remove_keys(agent_keys)
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 0)
 
-        yield from agent.add_keys([key])
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key])
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 1)
 
-        yield from agent_keys[0].remove()
-        agent_keys = yield from agent.get_keys()
+        await agent_keys[0].remove()
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 0)
 
-        yield from agent.add_keys([key], lifetime=1)
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key], lifetime=1)
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 1)
-        yield from asyncio.sleep(2)
+        await asyncio.sleep(2)
 
-        agent_keys = yield from agent.get_keys()
+        agent_keys = await agent.get_keys()
         self.assertEqual(len(agent_keys), 0)
 
     @asynctest
@@ -245,24 +240,24 @@ class _TestAPI(AsyncTestCase):
         """Test adding and removing smart card keys"""
 
         mock_agent = _Agent(String(Byte(SSH_AGENT_SUCCESS)))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
-        result = yield from agent.add_smartcard_keys('provider')
+        result = await agent.add_smartcard_keys('provider')
         self.assertIsNone(result)
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
         mock_agent = _Agent(String(Byte(SSH_AGENT_SUCCESS)))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
-        result = yield from agent.remove_smartcard_keys('provider')
+        result = await agent.remove_smartcard_keys('provider')
         self.assertIsNone(result)
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
     @agent_test
     def test_confirm(self, agent):
@@ -271,19 +266,19 @@ class _TestAPI(AsyncTestCase):
         key = asyncssh.generate_private_key('ssh-rsa')
         pubkey = key.convert_to_public()
 
-        yield from agent.add_keys([key], confirm=True)
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key], confirm=True)
+        agent_keys = await agent.get_keys()
 
         self.set_askpass(1)
 
         for agent_key in agent_keys:
             with self.assertRaises(ValueError):
-                sig = yield from agent_key.sign(b'test')
+                sig = await agent_key.sign(b'test')
 
         self.set_askpass(0)
 
         for agent_key in agent_keys:
-            sig = yield from agent_key.sign(b'test')
+            sig = await agent_key.sign(b'test')
             self.assertTrue(pubkey.verify(b'test', sig))
 
     @agent_test
@@ -293,19 +288,19 @@ class _TestAPI(AsyncTestCase):
         key = asyncssh.generate_private_key('ssh-rsa')
         pubkey = key.convert_to_public()
 
-        yield from agent.add_keys([key])
-        agent_keys = yield from agent.get_keys()
+        await agent.add_keys([key])
+        agent_keys = await agent.get_keys()
 
-        yield from agent.lock('passphrase')
+        await agent.lock('passphrase')
 
         for agent_key in agent_keys:
             with self.assertRaises(ValueError):
-                yield from agent_key.sign(b'test')
+                await agent_key.sign(b'test')
 
-        yield from agent.unlock('passphrase')
+        await agent.unlock('passphrase')
 
         for agent_key in agent_keys:
-            sig = yield from agent_key.sign(b'test')
+            sig = await agent_key.sign(b'test')
             self.assertTrue(pubkey.verify(b'test', sig))
 
     @asynctest
@@ -313,44 +308,44 @@ class _TestAPI(AsyncTestCase):
         """Test query of supported extensions"""
 
         mock_agent = _Agent(String(Byte(SSH_AGENT_SUCCESS) + String('xxx')))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
-        extensions = yield from agent.query_extensions()
+        extensions = await agent.query_extensions()
         self.assertEqual(extensions, ['xxx'])
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
         mock_agent = _Agent(String(Byte(SSH_AGENT_SUCCESS) + String(b'\xff')))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
         with self.assertRaises(ValueError):
-            yield from agent.query_extensions()
+            await agent.query_extensions()
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
         mock_agent = _Agent(String(Byte(SSH_AGENT_FAILURE)))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
-        extensions = yield from agent.query_extensions()
+        extensions = await agent.query_extensions()
         self.assertEqual(extensions, [])
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
         mock_agent = _Agent(String(b'\xff'))
-        yield from mock_agent.start('mock_agent')
-        agent = yield from asyncssh.connect_agent('mock_agent')
+        await mock_agent.start('mock_agent')
+        agent = await asyncssh.connect_agent('mock_agent')
 
         with self.assertRaises(ValueError):
-            yield from agent.query_extensions()
+            await agent.query_extensions()
 
         agent.close()
-        yield from mock_agent.stop()
+        await mock_agent.stop()
 
     @agent_test
     def test_unknown_key(self, agent):
@@ -359,7 +354,7 @@ class _TestAPI(AsyncTestCase):
         key = asyncssh.generate_private_key('ssh-rsa')
 
         with self.assertRaises(ValueError):
-            yield from agent.sign(key.public_data, b'test')
+            await agent.sign(key.public_data, b'test')
 
     @agent_test
     def test_double_close(self, agent):
@@ -380,9 +375,9 @@ class _TestAPI(AsyncTestCase):
         for response in (b'', String(b''),
                          String(Byte(SSH_AGENT_FAILURE)), String(b'\xff')):
             mock_agent = _Agent(response)
-            yield from mock_agent.start('mock_agent')
+            await mock_agent.start('mock_agent')
 
-            agent = yield from asyncssh.connect_agent('mock_agent')
+            agent = await asyncssh.connect_agent('mock_agent')
 
             for request in (agent.get_keys(),
                             agent.sign(b'xxx', b'test'),
@@ -394,8 +389,8 @@ class _TestAPI(AsyncTestCase):
                             agent.lock('passphrase'),
                             agent.unlock('passphrase')):
                 with self.assertRaises(ValueError):
-                    yield from request
+                    await request
 
                 agent.close()
 
-            yield from mock_agent.stop()
+            await mock_agent.stop()

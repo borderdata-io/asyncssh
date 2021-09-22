@@ -39,8 +39,7 @@ try:
 except ImportError: # pragma: no cover
     _aiofiles_available = False
 
-@asyncio.coroutine
-def _handle_client(process):
+async def _handle_client(process):
     """Handle a new client request"""
 
     action = process.command or process.subsystem
@@ -49,14 +48,14 @@ def _handle_client(process):
 
     if action == 'break':
         try:
-            yield from process.stdin.readline()
+            await process.stdin.readline()
         except asyncssh.BreakReceived as exc:
             process.exit_with_signal('ABRT', False, str(exc.msec))
     elif action == 'delay':
-        yield from asyncio.sleep(1)
-        yield from echo(process.stdin, process.stdout, process.stderr)
+        await asyncio.sleep(1)
+        await echo(process.stdin, process.stdout, process.stderr)
     elif action == 'echo':
-        yield from echo(process.stdin, process.stdout, process.stderr)
+        await echo(process.stdin, process.stdout, process.stderr)
     elif action == 'exit_status':
         process.channel.set_encoding('utf-8')
         process.stderr.write('Exiting with status 1')
@@ -65,14 +64,14 @@ def _handle_client(process):
         process.channel.set_encoding('utf-8')
         process.stdout.write(process.env.get('TEST', ''))
     elif action == 'redirect_stdin':
-        yield from process.redirect_stdin(process.stdout)
-        yield from process.stdout.drain()
+        await process.redirect_stdin(process.stdout)
+        await process.stdout.drain()
     elif action == 'redirect_stdout':
-        yield from process.redirect_stdout(process.stdin)
-        yield from process.stdout.drain()
+        await process.redirect_stdout(process.stdin)
+        await process.stdout.drain()
     elif action == 'redirect_stderr':
-        yield from process.redirect_stderr(process.stdin)
-        yield from process.stderr.drain()
+        await process.redirect_stderr(process.stdin)
+        await process.stderr.drain()
     elif action == 'term':
         info = str((process.get_terminal_type(), process.get_terminal_size(),
                     process.get_terminal_mode(asyncssh.PTY_OP_OSPEED)))
@@ -80,7 +79,7 @@ def _handle_client(process):
         process.stdout.write(info)
     elif action == 'term_size':
         try:
-            yield from process.stdin.readline()
+            await process.stdin.readline()
         except asyncssh.TerminalSizeChanged as exc:
             process.exit_with_signal('ABRT', False,
                                      '%sx%s' % (exc.width, exc.height))
@@ -88,18 +87,17 @@ def _handle_client(process):
         process.exit(255)
 
     process.close()
-    yield from process.wait_closed()
+    await process.wait_closed()
 
 
 class _TestProcess(ServerTestCase):
     """Unit tests for AsyncSSH process API"""
 
     @classmethod
-    @asyncio.coroutine
-    def start_server(cls):
+    async def start_server(cls):
         """Start an SSH server for the tests to use"""
 
-        return (yield from cls.create_server(process_factory=_handle_client,
+        return (await cls.create_server(process_factory=_handle_client,
                                              session_encoding=None))
 
 
@@ -112,13 +110,13 @@ class _TestProcessBasic(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(env={'TEST': 'test'})
+        with (await self.connect()) as conn:
+            process = await conn.create_process(env={'TEST': 'test'})
 
             process.stdin.write(data)
             process.stdin.write_eof()
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.env, {'TEST': 'test'})
         self.assertEqual(result.command, None)
@@ -134,13 +132,13 @@ class _TestProcessBasic(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process('echo')
+        with (await self.connect()) as conn:
+            process = await conn.create_process('echo')
 
             process.stdin.write(data)
             process.stdin.write_eof()
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.command, 'echo')
         self.assertEqual(result.subsystem, None)
@@ -153,13 +151,13 @@ class _TestProcessBasic(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(subsystem='echo')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(subsystem='echo')
 
             process.stdin.write(data)
             process.stdin.write_eof()
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.command, None)
         self.assertEqual(result.subsystem, 'echo')
@@ -172,9 +170,9 @@ class _TestProcessBasic(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.create_process()) as process:
-                stdout_data, stderr_data = yield from process.communicate(data)
+        with (await self.connect()) as conn:
+            with (await conn.create_process()) as process:
+                stdout_data, stderr_data = await process.communicate(data)
 
         self.assertEqual(stdout_data, data)
         self.assertEqual(stderr_data, data)
@@ -185,10 +183,10 @@ class _TestProcessBasic(_TestProcess):
 
         data = 4*1024*1024*'*'
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.create_process(input=data)) as process:
-                yield from asyncio.sleep(1)
-                stdout_data, stderr_data = yield from process.communicate()
+        with (await self.connect()) as conn:
+            with (await conn.create_process(input=data)) as process:
+                await asyncio.sleep(1)
+                stdout_data, stderr_data = await process.communicate()
 
         self.assertEqual(stdout_data, data)
         self.assertEqual(stderr_data, data)
@@ -197,10 +195,10 @@ class _TestProcessBasic(_TestProcess):
     def test_env(self):
         """Test sending environment"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process('env',
+        with (await self.connect()) as conn:
+            process = await conn.create_process('env',
                                                      env={'TEST': 'test'})
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, 'test')
 
@@ -210,11 +208,11 @@ class _TestProcessBasic(_TestProcess):
 
         modes = {asyncssh.PTY_OP_OSPEED: 9600}
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process('term', term_type='ansi',
+        with (await self.connect()) as conn:
+            process = await conn.create_process('term', term_type='ansi',
                                                      term_size=(80, 24),
                                                      term_modes=modes)
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, "('ansi', (80, 24, 0, 0), 9600)")
 
@@ -222,11 +220,11 @@ class _TestProcessBasic(_TestProcess):
     def test_change_terminal_size(self):
         """Test changing terminal size"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process('term_size',
+        with (await self.connect()) as conn:
+            process = await conn.create_process('term_size',
                                                      term_type='ansi')
             process.change_terminal_size(80, 24)
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_signal[2], '80x24')
 
@@ -234,10 +232,10 @@ class _TestProcessBasic(_TestProcess):
     def test_break(self):
         """Test sending a break"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process('break')
+        with (await self.connect()) as conn:
+            process = await conn.create_process('break')
             process.send_break(1000)
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_signal[2], '1000')
 
@@ -245,10 +243,10 @@ class _TestProcessBasic(_TestProcess):
     def test_signal(self):
         """Test sending a signal"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
             process.send_signal('HUP')
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_signal[0], 'HUP')
 
@@ -256,10 +254,10 @@ class _TestProcessBasic(_TestProcess):
     def test_terminate(self):
         """Test sending a terminate signal"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
             process.terminate()
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_signal[0], 'TERM')
 
@@ -267,10 +265,10 @@ class _TestProcessBasic(_TestProcess):
     def test_kill(self):
         """Test sending a kill signal"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
             process.kill()
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_signal[0], 'KILL')
 
@@ -278,8 +276,8 @@ class _TestProcessBasic(_TestProcess):
     def test_exit_status(self):
         """Test checking exit status"""
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('exit_status')
+        with (await self.connect()) as conn:
+            result = await conn.run('exit_status')
 
         self.assertEqual(result.exit_status, 1)
         self.assertEqual(result.stdout, '')
@@ -289,9 +287,9 @@ class _TestProcessBasic(_TestProcess):
     def test_raise_on_exit_status(self):
         """Test raising an exception on non-zero exit status"""
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             with self.assertRaises(asyncssh.ProcessError) as exc:
-                yield from conn.run('exit_status', env={'TEST': 'test'},
+                await conn.run('exit_status', env={'TEST': 'test'},
                                     check=True)
 
         self.assertEqual(exc.exception.env, {'TEST': 'test'})
@@ -305,10 +303,10 @@ class _TestProcessBasic(_TestProcess):
     def test_exit_signal(self):
         """Test checking exit signal"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
             process.send_signal('HUP')
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.exit_status, -1)
         self.assertEqual(result.exit_signal[0], 'HUP')
@@ -317,12 +315,12 @@ class _TestProcessBasic(_TestProcess):
     def test_raise_on_exit_signal(self):
         """Test raising an exception on exit signal"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
 
             with self.assertRaises(asyncssh.ProcessError) as exc:
                 process.send_signal('HUP')
-                yield from process.wait(check=True)
+                await process.wait(check=True)
 
         self.assertEqual(exc.exception.exit_status, -1)
         self.assertEqual(exc.exception.exit_signal[0], 'HUP')
@@ -338,8 +336,8 @@ class _TestProcessBasic(_TestProcess):
         with open('stdin', 'w', encoding='utf-8') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin='stdin', bufsize=2)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin='stdin', bufsize=2)
 
         self.assertEqual(result.stdout, data)
 
@@ -352,9 +350,9 @@ class _TestProcessBasic(_TestProcess):
         with open('stdin', 'wb') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             with self.assertRaises(asyncssh.DisconnectError):
-                yield from conn.run('echo', stdin='stdin')
+                await conn.run('echo', stdin='stdin')
 
     @asynctest
     def test_incomplete_unicode(self):
@@ -365,9 +363,9 @@ class _TestProcessBasic(_TestProcess):
         with open('stdin', 'wb') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
+        with (await self.connect()) as conn:
             with self.assertRaises(asyncssh.DisconnectError):
-                yield from conn.run('echo', stdin='stdin')
+                await conn.run('echo', stdin='stdin')
 
     @asynctest
     def test_disconnect(self):
@@ -375,13 +373,13 @@ class _TestProcessBasic(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
 
             process.stdin.write(data)
             process.send_signal('ABRT')
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -390,21 +388,21 @@ class _TestProcessBasic(_TestProcess):
     def test_get_extra_info(self):
         """Test get_extra_info on streams"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
             self.assertEqual(process.get_extra_info('connection'), conn)
             process.stdin.write_eof()
 
-            yield from process.wait()
+            await process.wait()
 
-        yield from conn.wait_closed()
+        await conn.wait_closed()
 
     @asynctest
     def test_unknown_action(self):
         """Test unknown action"""
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('unknown')
+        with (await self.connect()) as conn:
+            result = await conn.run('unknown')
 
         self.assertEqual(result.exit_status, 255)
 
@@ -418,8 +416,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -428,8 +426,8 @@ class _TestProcessRedirection(_TestProcess):
     def test_stdin_devnull(self):
         """Test with stdin redirected to DEVNULL"""
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=asyncssh.DEVNULL)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=asyncssh.DEVNULL)
 
         self.assertEqual(result.stdout, '')
         self.assertEqual(result.stderr, '')
@@ -443,8 +441,8 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin='stdin')
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin='stdin')
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -458,8 +456,8 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'wb') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin='stdin',
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin='stdin',
                                          encoding=None)
 
         self.assertEqual(result.stdout, data)
@@ -474,8 +472,8 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=Path('stdin'))
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=Path('stdin'))
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -491,8 +489,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = open('stdin', 'r')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -508,8 +506,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = open('stdin', 'rb')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file,
                                          encoding=None)
 
         self.assertEqual(result.stdout, data)
@@ -526,8 +524,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = io.StringIO(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -543,8 +541,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = io.BytesIO(data.encode('ascii'))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -555,10 +553,10 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            proc1 = yield from conn.create_process(input=data)
-            proc2 = yield from conn.create_process(stdin=proc1.stdout)
-            result = yield from proc2.wait()
+        with (await self.connect()) as conn:
+            proc1 = await conn.create_process(input=data)
+            proc2 = await conn.create_process(stdin=proc1.stdout)
+            result = await proc2.wait()
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -569,8 +567,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data,
                                          stdout=asyncssh.DEVNULL)
 
         self.assertEqual(result.stdout, '')
@@ -582,8 +580,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout='stdout')
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout='stdout')
 
         with open('stdout', 'r') as file:
             stdout_data = file.read()
@@ -598,8 +596,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self)).encode() + b'\xff'
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout='stdout',
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout='stdout',
                                          encoding=None)
 
         with open('stdout', 'rb') as file:
@@ -615,8 +613,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data,
                                          stdout=Path('stdout'))
 
         with open('stdout', 'r') as file:
@@ -634,8 +632,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = open('stdout', 'w')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file)
 
         with open('stdout', 'r') as file:
             stdout_data = file.read()
@@ -652,8 +650,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = open('stdout', 'wb')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file,
                                          encoding=None)
 
         with open('stdout', 'rb') as file:
@@ -683,8 +681,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = _StringIOTest()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file)
 
         self.assertEqual(file.output, data)
         self.assertEqual(result.stdout, '')
@@ -710,8 +708,8 @@ class _TestProcessRedirection(_TestProcess):
 
         file = _BytesIOTest()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file)
 
         self.assertEqual(file.output, data.encode('ascii'))
         self.assertEqual(result.stdout, '')
@@ -723,14 +721,14 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.create_process()) as proc2:
-                proc1 = yield from conn.create_process(stdout=proc2.stdin)
+        with (await self.connect()) as conn:
+            with (await conn.create_process()) as proc2:
+                proc1 = await conn.create_process(stdout=proc2.stdin)
 
                 proc1.stdin.write(data)
                 proc1.stdin.write_eof()
 
-                result = yield from proc2.wait()
+                result = await proc2.wait()
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -739,18 +737,18 @@ class _TestProcessRedirection(_TestProcess):
     def test_change_stdout(self):
         """Test changing stdout of an open process"""
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(stdout='stdout')
+        with (await self.connect()) as conn:
+            process = await conn.create_process(stdout='stdout')
 
             process.stdin.write('xxx')
 
-            yield from asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
-            yield from process.redirect_stdout(asyncssh.PIPE)
+            await process.redirect_stdout(asyncssh.PIPE)
             process.stdin.write('yyy')
             process.stdin.write_eof()
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         with open('stdout', 'r') as file:
             stdout_data = file.read()
@@ -765,21 +763,21 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.create_process()) as proc2:
-                proc1 = yield from conn.create_process(stdout=proc2.stdin)
+        with (await self.connect()) as conn:
+            with (await conn.create_process()) as proc2:
+                proc1 = await conn.create_process(stdout=proc2.stdin)
 
                 proc1.stdin.write(data)
-                yield from asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
 
-                yield from proc2.redirect_stdin(asyncssh.PIPE)
+                await proc2.redirect_stdin(asyncssh.PIPE)
                 proc2.stdin.write(data)
-                yield from asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
 
-                yield from proc2.redirect_stdin(proc1.stdout)
+                await proc2.redirect_stdin(proc1.stdout)
                 proc1.stdin.write_eof()
 
-                result = yield from proc2.wait()
+                result = await proc2.wait()
 
         self.assertEqual(result.stdout, data+data)
         self.assertEqual(result.stderr, data+data)
@@ -790,21 +788,21 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            with (yield from conn.create_process()) as proc2:
-                proc1 = yield from conn.create_process(stdout=proc2.stdin)
+        with (await self.connect()) as conn:
+            with (await conn.create_process()) as proc2:
+                proc1 = await conn.create_process(stdout=proc2.stdin)
 
                 proc1.stdin.write(data)
-                yield from asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
 
-                yield from proc1.redirect_stdout(asyncssh.DEVNULL)
+                await proc1.redirect_stdout(asyncssh.DEVNULL)
                 proc1.stdin.write(data)
-                yield from asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
 
-                yield from proc1.redirect_stdout(proc2.stdin)
+                await proc1.redirect_stdout(proc2.stdin)
                 proc1.stdin.write_eof()
 
-                result = yield from proc2.wait()
+                result = await proc2.wait()
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -815,8 +813,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data,
                                          stderr=asyncssh.STDOUT)
 
         self.assertEqual(result.stdout, data+data)
@@ -827,8 +825,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('redirect_stdin', input=data)
+        with (await self.connect()) as conn:
+            result = await conn.run('redirect_stdin', input=data)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, '')
@@ -839,8 +837,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('redirect_stdout', input=data)
+        with (await self.connect()) as conn:
+            result = await conn.run('redirect_stdout', input=data)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, '')
@@ -851,8 +849,8 @@ class _TestProcessRedirection(_TestProcess):
 
         data = str(id(self))
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('redirect_stderr', input=data)
+        with (await self.connect()) as conn:
+            result = await conn.run('redirect_stderr', input=data)
 
         self.assertEqual(result.stdout, '')
         self.assertEqual(result.stderr, data)
@@ -866,8 +864,8 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin='stdin',
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin='stdin',
                                          stderr=asyncssh.DEVNULL)
 
         self.assertEqual(result.stdout, data)
@@ -878,15 +876,15 @@ class _TestProcessRedirection(_TestProcess):
 
         data = 4*1024*1024*'*'
 
-        with (yield from self.connect()) as conn:
-            proc1 = yield from conn.create_process(input=data)
+        with (await self.connect()) as conn:
+            proc1 = await conn.create_process(input=data)
 
-            proc2 = yield from conn.create_process('delay', stdin=proc1.stdout,
+            proc2 = await conn.create_process('delay', stdin=proc1.stdout,
                                                    stderr=asyncssh.DEVNULL)
-            proc3 = yield from conn.create_process('delay', stdin=proc1.stderr,
+            proc3 = await conn.create_process('delay', stdin=proc1.stderr,
                                                    stderr=asyncssh.DEVNULL)
 
-            result2, result3 = yield from asyncio.gather(proc2.wait(),
+            result2, result3 = await asyncio.gather(proc2.wait(),
                                                          proc3.wait())
 
         self.assertEqual(result2.stdout, data)
@@ -901,14 +899,14 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
 
             process.stdin.write(data)
 
-            yield from process.redirect_stdin('stdin')
+            await process.redirect_stdin('stdin')
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, data+data)
         self.assertEqual(result.stderr, data+data)
@@ -919,14 +917,14 @@ class _TestProcessRedirection(_TestProcess):
 
         data = 4*1024*1024*'*'
 
-        with (yield from self.connect()) as conn:
-            proc1 = yield from conn.create_process(input=data)
-            proc2 = yield from conn.create_process('delay', stdin=proc1.stdout)
-            proc3 = yield from conn.create_process('delay', stdin=proc1.stderr)
+        with (await self.connect()) as conn:
+            proc1 = await conn.create_process(input=data)
+            proc2 = await conn.create_process('delay', stdin=proc1.stdout)
+            proc3 = await conn.create_process('delay', stdin=proc1.stderr)
 
-            yield from proc1.redirect_stderr(asyncssh.DEVNULL)
+            await proc1.redirect_stderr(asyncssh.DEVNULL)
 
-            result = yield from proc2.wait()
+            result = await proc2.wait()
             proc3.close()
 
         self.assertEqual(result.stdout, data)
@@ -941,15 +939,15 @@ class _TestProcessRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process()
+        with (await self.connect()) as conn:
+            process = await conn.create_process()
 
-            yield from process.redirect_stdin('stdin', send_eof=False)
-            yield from process.stdin.drain()
+            await process.redirect_stdin('stdin', send_eof=False)
+            await process.stdin.drain()
 
-            yield from process.redirect_stdin('stdin')
+            await process.redirect_stdin('stdin')
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, data+data)
         self.assertEqual(result.stderr, data+data)
@@ -968,10 +966,10 @@ class _TestAsyncFileRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        file = yield from aiofiles.open('stdin', 'r')
+        file = await aiofiles.open('stdin', 'r')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -985,10 +983,10 @@ class _TestAsyncFileRedirection(_TestProcess):
         with open('stdin', 'wb') as file:
             file.write(data)
 
-        file = yield from aiofiles.open('stdin', 'rb')
+        file = await aiofiles.open('stdin', 'rb')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=file,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=file,
                                          encoding=None)
 
         self.assertEqual(result.stdout, data)
@@ -1002,8 +1000,8 @@ class _TestAsyncFileRedirection(_TestProcess):
 
         file = open('stdout', 'w')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file)
 
         with open('stdout', 'r') as file:
             stdout_data = file.read()
@@ -1018,10 +1016,10 @@ class _TestAsyncFileRedirection(_TestProcess):
 
         data = str(id(self)).encode() + b'\xff'
 
-        file = yield from aiofiles.open('stdout', 'wb')
+        file = await aiofiles.open('stdout', 'wb')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=file,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=file,
                                          encoding=None)
 
         with open('stdout', 'rb') as file:
@@ -1040,10 +1038,10 @@ class _TestAsyncFileRedirection(_TestProcess):
         with open('stdin', 'w') as file:
             file.write(data)
 
-        file = yield from aiofiles.open('stdin', 'r')
+        file = await aiofiles.open('stdin', 'r')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('delay', stdin=file,
+        with (await self.connect()) as conn:
+            result = await conn.run('delay', stdin=file,
                                          stderr=asyncssh.DEVNULL)
 
         self.assertEqual(result.stdout, data)
@@ -1064,8 +1062,8 @@ class _TestProcessPipes(_TestProcess):
         os.write(wpipe, data.encode())
         os.close(wpipe)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=rpipe)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=rpipe)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -1084,8 +1082,8 @@ class _TestProcessPipes(_TestProcess):
         wpipe.write(data)
         wpipe.close()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=rpipe)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=rpipe)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -1101,8 +1099,8 @@ class _TestProcessPipes(_TestProcess):
         os.write(wpipe, data)
         os.close(wpipe)
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=rpipe,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=rpipe,
                                          encoding=None)
 
         self.assertEqual(result.stdout, data)
@@ -1116,8 +1114,8 @@ class _TestProcessPipes(_TestProcess):
 
         rpipe, wpipe = os.pipe()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=wpipe)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=wpipe)
 
         stdout_data = os.read(rpipe, 1024)
         os.close(rpipe)
@@ -1137,8 +1135,8 @@ class _TestProcessPipes(_TestProcess):
         rpipe = os.fdopen(rpipe, 'r')
         wpipe = os.fdopen(wpipe, 'w')
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=wpipe)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=wpipe)
 
         stdout_data = rpipe.read(1024)
         rpipe.close()
@@ -1155,8 +1153,8 @@ class _TestProcessPipes(_TestProcess):
 
         rpipe, wpipe = os.pipe()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=wpipe,
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=wpipe,
                                          encoding=None)
 
         stdout_data = os.read(rpipe, 1024)
@@ -1182,8 +1180,8 @@ class _TestProcessSocketPair(_TestProcess):
         sock1.send(data.encode())
         sock1.close()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', stdin=sock2)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', stdin=sock2)
 
         self.assertEqual(result.stdout, data)
         self.assertEqual(result.stderr, data)
@@ -1198,16 +1196,16 @@ class _TestProcessSocketPair(_TestProcess):
         sock1.send(b'xxx')
         sock3.send(b'yyy')
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(stdin=sock2)
+        with (await self.connect()) as conn:
+            process = await conn.create_process(stdin=sock2)
 
-            yield from asyncio.sleep(0.1)
-            yield from process.redirect_stdin(sock4)
+            await asyncio.sleep(0.1)
+            await process.redirect_stdin(sock4)
 
             sock1.close()
             sock3.close()
 
-            result = yield from process.wait()
+            result = await process.wait()
 
         self.assertEqual(result.stdout, 'xxxyyy')
         self.assertEqual(result.stderr, 'xxxyyy')
@@ -1220,8 +1218,8 @@ class _TestProcessSocketPair(_TestProcess):
 
         sock1, sock2 = socket.socketpair()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('echo', input=data, stdout=sock1)
+        with (await self.connect()) as conn:
+            result = await conn.run('echo', input=data, stdout=sock1)
 
         stdout_data = sock2.recv(1024)
         sock2.close()
@@ -1237,12 +1235,12 @@ class _TestProcessSocketPair(_TestProcess):
 
         sock1, sock2 = socket.socketpair()
 
-        _, writer = yield from asyncio.open_unix_connection(sock=sock1)
+        _, writer = await asyncio.open_unix_connection(sock=sock1)
         writer.write(data.encode())
         writer.close()
 
-        with (yield from self.connect()) as conn:
-            result = yield from conn.run('delay', stdin=sock2,
+        with (await self.connect()) as conn:
+            result = await conn.run('delay', stdin=sock2,
                                          stderr=asyncssh.DEVNULL)
 
         self.assertEqual(result.stdout, data)
@@ -1256,24 +1254,24 @@ class _TestProcessSocketPair(_TestProcess):
         rsock1, wsock1 = socket.socketpair()
         rsock2, wsock2 = socket.socketpair()
 
-        reader1, writer1 = yield from asyncio.open_unix_connection(sock=rsock1)
-        reader2, writer2 = yield from asyncio.open_unix_connection(sock=rsock2)
+        reader1, writer1 = await asyncio.open_unix_connection(sock=rsock1)
+        reader2, writer2 = await asyncio.open_unix_connection(sock=rsock2)
 
-        with (yield from self.connect()) as conn:
-            process = yield from conn.create_process(input=data)
+        with (await self.connect()) as conn:
+            process = await conn.create_process(input=data)
 
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
 
-            yield from process.redirect_stdout(wsock1)
-            yield from process.redirect_stderr(wsock2)
+            await process.redirect_stdout(wsock1)
+            await process.redirect_stderr(wsock2)
 
             stdout_data, stderr_data = \
-                yield from asyncio.gather(reader1.read(), reader2.read())
+                await asyncio.gather(reader1.read(), reader2.read())
 
             writer1.close()
             writer2.close()
 
-            yield from process.wait()
+            await process.wait()
 
         self.assertEqual(stdout_data.decode(), data)
         self.assertEqual(stderr_data.decode(), data)
