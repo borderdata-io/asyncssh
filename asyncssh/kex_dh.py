@@ -30,7 +30,7 @@ from .misc import DisconnectError, get_symbol_names, randrange
 from .packet import Boolean, MPInt, String, UInt32
 
 
-# pylint: disable=bad-whitespace,line-too-long
+# pylint: disable=line-too-long
 
 # SSH KEX DH message values
 MSG_KEXDH_INIT             = 30
@@ -88,7 +88,7 @@ _dh_gex_groups = ((1024, _group1_g,  _group1_p),
                   (6144, _group17_g, _group17_p),
                   (8192, _group18_g, _group18_p))
 
-# pylint: enable=bad-whitespace,line-too-long
+# pylint: disable=line-too-long
 
 # Short variable names are used here, matching names in the spec
 # pylint: disable=invalid-name
@@ -561,7 +561,7 @@ class _KexGSSGex(_KexGSSBase, _KexDHGex):
     }
 
 
-# pylint: disable=bad-whitespace
+
 
 for _name, _hash_alg in ((b'sha256', sha256), (b'sha1', sha1)):
     register_kex_alg(b'diffie-hellman-group-exchange-' + _name,

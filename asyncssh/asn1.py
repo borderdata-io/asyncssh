@@ -32,7 +32,7 @@
 
 """
 
-# pylint: disable=bad-whitespace
+
 
 # ASN.1 object classes
 UNIVERSAL         = 0x00
@@ -53,7 +53,7 @@ SEQUENCE          = 0x10
 SET               = 0x11
 IA5_STRING        = 0x16
 
-# pylint: enable=bad-whitespace
+
 
 _asn1_class = ('Universal', 'Application', 'Context-specific', 'Private')
 

@@ -33,7 +33,7 @@ from .listener import create_tcp_forward_listener
 from .logging import logger
 from .misc import ChannelOpenError
 
-# pylint: disable=bad-whitespace
+
 
 # Xauth address families
 XAUTH_FAMILY_IPV4     = 0
@@ -60,7 +60,7 @@ X11_MAX_DISPLAYS      = 64
 # Host to listen on when doing X11 forwarding
 X11_LISTEN_HOST       = 'localhost'
 
-# pylint: enable=bad-whitespace
+
 
 
 def _parse_display(display):

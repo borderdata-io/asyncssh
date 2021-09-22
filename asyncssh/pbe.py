@@ -28,7 +28,7 @@ from .asn1 import ASN1DecodeError, ObjectIdentifier, der_encode, der_decode
 from .crypto import BasicCipher, get_cipher_params, pbkdf2_hmac
 
 
-# pylint: disable=bad-whitespace
+
 
 _ES1_MD5_DES    = ObjectIdentifier('1.2.840.113549.1.5.3')
 _ES1_SHA1_DES   = ObjectIdentifier('1.2.840.113549.1.5.10')
@@ -56,7 +56,7 @@ _ES2_SHA256     = ObjectIdentifier('1.2.840.113549.2.9')
 _ES2_SHA384     = ObjectIdentifier('1.2.840.113549.2.10')
 _ES2_SHA512     = ObjectIdentifier('1.2.840.113549.2.11')
 
-# pylint: enable=bad-whitespace
+
 
 _pkcs1_cipher = {}
 _pkcs1_dek_name = {}
@@ -508,7 +508,7 @@ def pkcs8_decrypt(key_data, passphrase):
         raise KeyEncryptionError('Invalid PKCS#8 encrypted key data')
 
 
-# pylint: disable=bad-whitespace
+
 
 _pkcs1_cipher_list = (
     ('aes128-cbc', b'AES-128-CBC',  'aes128-cbc'),

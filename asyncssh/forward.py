@@ -152,7 +152,7 @@ class SSHLocalForwarder(SSHForwarder):
             return SSHForwarder(self)
 
         try:
-            yield from self._coro(session_factory, *args)
+            await self._coro(session_factory, *args)
         except ChannelOpenError as exc:
             self.connection_lost(exc)
             return

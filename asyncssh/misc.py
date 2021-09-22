@@ -175,18 +175,15 @@ def async_context_manager(coro):
             self._coro = coro
             self._result = None
 
-        def __iter__(self):
-            return (yield from self._coro)
-
         def __await__(self):
-            return (yield from self._coro)
+            return (await self._coro)
 
         async def __aenter__(self):
-            self._result = yield from self._coro
-            return (yield from self._result.__aenter__())
+            self._result = await self._coro
+            return (await self._result.__aenter__())
 
         async def __aexit__(self, *exc_info):
-            yield from self._result.__aexit__(*exc_info)
+            await self._result.__aexit__(*exc_info)
             self._result = None
 
     @functools.wraps(coro)

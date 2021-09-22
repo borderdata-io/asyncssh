@@ -30,14 +30,14 @@ from .misc import DisconnectError, get_symbol_names, randrange
 from .packet import MPInt, String, SSHPacket
 from .public_key import decode_ssh_public_key
 
-# pylint: disable=bad-whitespace
+
 
 # SSH KEXRSA message values
 MSG_KEXRSA_PUBKEY  = 30
 MSG_KEXRSA_SECRET  = 31
 MSG_KEXRSA_DONE    = 32
 
-# pylint: enable=bad-whitespace
+
 
 # Short variable names are used here, matching names in the spec
 # pylint: disable=invalid-name
@@ -169,7 +169,7 @@ class _KexRSA(Kex):
     }
 
 
-# pylint: disable=bad-whitespace
+
 
 for _name, _hash_alg, _key_size, _hash_size  in (
         (b'rsa2048-sha256', sha256, 2048, 256),

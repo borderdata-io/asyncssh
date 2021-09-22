@@ -383,7 +383,7 @@ class SSHLineEditor:
 
         self._session.break_received(0)
 
-    # pylint: disable=bad-whitespace
+
 
     _keylist = ((_end_line,      ('\n', '\r', '\x1bOM')),
                 (_eof_or_delete, ('\x04',)),
@@ -401,7 +401,7 @@ class SSHLineEditor:
                 (_insert_erased, ('\x19',)),
                 (_send_break,    ('\x03', '\x1b[33~')))
 
-    # pylint: enable=bad-whitespace
+
 
     def set_line_mode(self, line_mode):
         """Enable/disable input line editing"""

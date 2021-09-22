@@ -52,7 +52,7 @@ class SSHReader:
         async def __anext__(self):
             """Return one line at a time when used as an async iterator"""
 
-            line = yield from self.readline()
+            line = await self.readline()
 
             if line:
                 return line
@@ -125,7 +125,7 @@ class SSHReader:
         """
 
         try:
-            return (yield from self.readuntil(_NEWLINE))
+            return (await self.readuntil(_NEWLINE))
         except asyncio.IncompleteReadError as exc:
             return exc.partial
 
@@ -240,7 +240,7 @@ class SSHWriter:
 
         """
 
-        return (yield from self._session.drain(self._datatype))
+        return (await self._session.drain(self._datatype))
 
     def write(self, data):
         """Write data to the stream
@@ -309,7 +309,7 @@ class SSHStreamSession:
         try:
             waiter = asyncio.Future(loop=self._loop)
             self._read_waiters[datatype] = waiter
-            yield from waiter
+            await waiter
         finally:
             self._read_waiters[datatype] = None
 
@@ -436,7 +436,7 @@ class SSHStreamSession:
         buf = '' if self._encoding else b''
         data = []
 
-        with (yield from self._read_locks[datatype]):
+        with (await self._read_locks[datatype]):
             while True:
                 while recv_buf and n != 0:
                     if isinstance(recv_buf[0], Exception):
@@ -470,7 +470,7 @@ class SSHStreamSession:
                         (n < 0 and recv_buf) or self._eof_received:
                     break
 
-                yield from self._block_read(datatype)
+                await self._block_read(datatype)
 
         buf = buf.join(data)
         if n > 0 and exact:
@@ -492,7 +492,7 @@ class SSHStreamSession:
         curbuf = 0
         buflen = 0
 
-        with (yield from self._read_locks[datatype]):
+        with (await self._read_locks[datatype]):
             while True:
                 while curbuf < len(recv_buf):
                     if isinstance(recv_buf[curbuf], Exception):
@@ -532,7 +532,7 @@ class SSHStreamSession:
                     self._recv_buf_len -= buflen
                     raise asyncio.IncompleteReadError(buf, None)
 
-                yield from self._block_read(datatype)
+                await self._block_read(datatype)
 
     async def drain(self, datatype):
         """Wait for data written to the channel to drain"""
@@ -541,7 +541,7 @@ class SSHStreamSession:
             try:
                 waiter = asyncio.Future(loop=self._loop)
                 self._drain_waiters[datatype].add(waiter)
-                yield from waiter
+                await waiter
             finally:
                 self._drain_waiters[datatype].remove(waiter)
 

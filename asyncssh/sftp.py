@@ -2410,10 +2410,10 @@ class SFTPClient:
 
         """
 
-        return (await self._glob(self, patterns, error_handler))
+        return await self._glob(self, patterns, error_handler)
 
     @async_context_manager
-    def open(self, path, pflags_or_mode=FXF_READ, attrs=SFTPAttrs(),
+    async def open(self, path, pflags_or_mode=FXF_READ, attrs=SFTPAttrs(),
              encoding='utf-8', errors='strict', block_size=SFTP_BLOCK_SIZE,
              max_requests=_MAX_SFTP_REQUESTS):
         """Open a remote file

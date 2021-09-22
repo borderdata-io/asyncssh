@@ -59,13 +59,13 @@ class SSHKeySignKeyPair(SSHKeyPair):
     async def sign(self, data):
         """Use ssh-keysign to sign a block of data with this key"""
 
-        proc = yield from asyncio.create_subprocess_exec(
+        proc = await asyncio.create_subprocess_exec(
             self._keysign_path, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, pass_fds=[self._sock_fd])
 
         request = String(Byte(KEYSIGN_VERSION) + UInt32(self._sock_fd) +
                          String(data))
-        stdout, stderr = yield from proc.communicate(request)
+        stdout, stderr = await proc.communicate(request)
 
         if stderr:
             error = stderr.decode().strip()

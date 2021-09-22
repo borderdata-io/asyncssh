@@ -128,7 +128,7 @@ def get_cipher_params(cipher_name):
     return _cipher_params[cipher_name]
 
 
-# pylint: disable=bad-whitespace
+
 
 _cipher_alg_list = (
     ('aes128-cbc',   AES,       CBC,     0, 16, 16, 16),
@@ -150,7 +150,7 @@ _cipher_alg_list = (
     ('des3-cbc',     TripleDES, CBC,     0, 24,  8,  8)
 )
 
-# pylint: enable=bad-whitespace
+
 
 for _cipher_name, _cipher, _mode, _initial_bytes, \
         _key_size, _iv_size, _block_size in _cipher_alg_list:

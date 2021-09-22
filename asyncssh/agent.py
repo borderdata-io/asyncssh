@@ -49,7 +49,7 @@ except ImportError as exc: # pragma: no cover
         raise OSError(errno.ENOENT, 'Agent support unavailable: %s' % reason)
 
 
-# pylint: disable=bad-whitespace
+
 
 # Client request message numbers
 SSH_AGENTC_REQUEST_IDENTITIES            = 11
@@ -81,7 +81,7 @@ SSH_AGENT_CONSTRAIN_EXTENSION            = 3
 SSH_AGENT_RSA_SHA2_256                   = 2
 SSH_AGENT_RSA_SHA2_512                   = 4
 
-# pylint: enable=bad-whitespace
+
 
 
 class _AgentListener:

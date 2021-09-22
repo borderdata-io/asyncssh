@@ -33,7 +33,7 @@ from .packet import Boolean, String, UInt32, SSHPacketHandler
 from .saslprep import saslprep, SASLPrepError
 
 
-# pylint: disable=bad-whitespace
+
 
 # SSH message values for GSS auth
 MSG_USERAUTH_GSSAPI_RESPONSE          = 60
@@ -53,7 +53,7 @@ MSG_USERAUTH_INFO_RESPONSE            = 61
 # SSH message values for password auth
 MSG_USERAUTH_PASSWD_CHANGEREQ         = 60
 
-# pylint: enable=bad-whitespace
+
 
 _auth_methods = []
 _client_auth_handlers = {}
@@ -959,7 +959,7 @@ def lookup_server_auth(conn, username, method, packet):
         return None
 
 
-# pylint: disable=bad-whitespace
+
 
 _auth_method_list = (
     (b'none',                 _ClientNullAuth,      _ServerNullAuth),
@@ -971,7 +971,7 @@ _auth_method_list = (
     (b'password',             _ClientPasswordAuth,  _ServerPasswordAuth)
 )
 
-# pylint: enable=bad-whitespace
+
 
 for _args in _auth_method_list:
     register_auth_method(*_args)

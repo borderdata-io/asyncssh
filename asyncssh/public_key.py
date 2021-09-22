@@ -1504,7 +1504,7 @@ class SSHOpenSSHCertificate(SSHCertificate):
 class SSHOpenSSHCertificateV01(SSHOpenSSHCertificate):
     """Encoder/decoder class for version 01 OpenSSH certificates"""
 
-    # pylint: disable=bad-whitespace
+
 
     _user_option_encoders = (
         ('force-command',           SSHOpenSSHCertificate._encode_force_cmd),
@@ -1532,7 +1532,7 @@ class SSHOpenSSHCertificateV01(SSHOpenSSHCertificate):
         b'permit-user-rc':          SSHOpenSSHCertificate._decode_bool
     }
 
-    # pylint: enable=bad-whitespace
+
 
     @classmethod
     def _encode(cls, key, serial, cert_type, key_id, principals,

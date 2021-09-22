@@ -37,7 +37,7 @@ from OpenSSL import crypto
 from ..asn1 import IA5String, der_decode, der_encode
 
 
-# pylint: disable=bad-whitespace
+
 
 _purpose_to_oid = {
     'serverAuth':        x509.ExtendedKeyUsageOID.SERVER_AUTH,
@@ -45,7 +45,7 @@ _purpose_to_oid = {
     'secureShellClient': x509.ObjectIdentifier('1.3.6.1.5.5.7.3.21'),
     'secureShellServer': x509.ObjectIdentifier('1.3.6.1.5.5.7.3.22')}
 
-# pylint: enable=bad-whitespace
+
 
 _purpose_any = '2.5.29.37.0'
 
@@ -133,7 +133,7 @@ class X509Name(x509.Name):
     _split_rdn = re.compile(r'(?:[^+\\]+|\\.)+')
     _split_name = re.compile(r'(?:[^,\\]+|\\.)+')
 
-# pylint: disable=bad-whitespace
+
 
     _attrs = (
         ('C',  x509.NameOID.COUNTRY_NAME),
@@ -144,7 +144,7 @@ class X509Name(x509.Name):
         ('CN', x509.NameOID.COMMON_NAME),
         ('DC', x509.NameOID.DOMAIN_COMPONENT))
 
-# pylint: enable=bad-whitespace
+
 
     _to_oid = dict((k, v) for k, v in _attrs)
     _from_oid = dict((v, k) for k, v in _attrs)

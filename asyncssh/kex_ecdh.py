@@ -27,13 +27,13 @@ from .kex import Kex, register_kex_alg
 from .misc import DisconnectError, get_symbol_names
 from .packet import MPInt, String
 
-# pylint: disable=bad-whitespace
+
 
 # SSH KEX ECDH message values
 MSG_KEX_ECDH_INIT  = 30
 MSG_KEX_ECDH_REPLY = 31
 
-# pylint: enable=bad-whitespace
+
 
 
 class _KexECDH(Kex):

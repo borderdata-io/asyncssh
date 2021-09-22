@@ -36,7 +36,7 @@ class ChatClient:
         self._process = process
 
     @classmethod
-async def handle_client(cls, process):
+    async def handle_client(cls, process):
         await cls(process).run()
 
     def write(self, msg):

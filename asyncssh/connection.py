@@ -2775,7 +2775,7 @@ class SSHClientConnection(SSHConnection):
 
     # pylint: disable=redefined-builtin
     @async_context_manager
-    def create_process(self, *args, bufsize=io.DEFAULT_BUFFER_SIZE, input=None,
+    async def create_process(self, *args, bufsize=io.DEFAULT_BUFFER_SIZE, input=None,
                        stdin=PIPE, stdout=PIPE, stderr=PIPE, **kwargs):
         """Create a process on the remote system
 
@@ -3431,7 +3431,7 @@ class SSHClientConnection(SSHConnection):
             raise
 
     @async_context_manager
-    def start_sftp_client(self, path_encoding='utf-8', path_errors='strict'):
+    async def start_sftp_client(self, path_encoding='utf-8', path_errors='strict'):
         """Start an SFTP client
 
            This method is a coroutine which attempts to start a secure
@@ -4249,7 +4249,7 @@ class SSHServerConnection(SSHConnection):
             if self._x11_listener.detach(chan):
                 self._x11_listener = None
 
-    def create_agent_listener(self):
+    async def create_agent_listener(self):
         """Create a listener for forwarding ssh-agent connections"""
 
         if (not self._agent_forwarding or
@@ -5361,7 +5361,7 @@ async def create_server(server_factory, host=None, port=_DEFAULT_PORT, *,
 
 
 @async_context_manager
-def connect(host, port=_DEFAULT_PORT, **kwargs):
+async def connect(host, port=_DEFAULT_PORT, **kwargs):
     """Make an SSH client connection
 
        This function is a coroutine wrapper around :func:`create_connection`

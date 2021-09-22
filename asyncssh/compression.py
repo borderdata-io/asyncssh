@@ -92,7 +92,7 @@ def get_decompressor(alg):
 
     return _cmp_decompressors[alg]()
 
-# pylint: disable=bad-whitespace
+
 
 register_compression_alg(b'zlib@openssh.com',
                          _ZLibCompress, zlib.decompressobj, True)
