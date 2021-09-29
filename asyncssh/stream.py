@@ -125,7 +125,7 @@ class SSHReader:
         """
 
         try:
-            return (await self.readuntil(_NEWLINE))
+            return await self.readuntil(_NEWLINE)
         except asyncio.IncompleteReadError as exc:
             return exc.partial
 
@@ -164,7 +164,7 @@ class SSHReader:
 
         """
 
-        return self._session.read(n, self._datatype, exact=True)
+        return await self._session.read(n, self._datatype, exact=True)
 
     def at_eof(self):
         """Return whether the stream is at EOF
@@ -240,7 +240,7 @@ class SSHWriter:
 
         """
 
-        return (await self._session.drain(self._datatype))
+        return await self._session.drain(self._datatype)
 
     def write(self, data):
         """Write data to the stream
@@ -436,7 +436,7 @@ class SSHStreamSession:
         buf = '' if self._encoding else b''
         data = []
 
-        with (await self._read_locks[datatype]):
+        async with self._read_locks[datatype]:
             while True:
                 while recv_buf and n != 0:
                     if isinstance(recv_buf[0], Exception):
@@ -492,7 +492,7 @@ class SSHStreamSession:
         curbuf = 0
         buflen = 0
 
-        with (await self._read_locks[datatype]):
+        async with self._read_locks[datatype]:
             while True:
                 while curbuf < len(recv_buf):
                     if isinstance(recv_buf[curbuf], Exception):
